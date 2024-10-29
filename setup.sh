@@ -19,17 +19,17 @@ then
 	echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
 	echo "No Conda installation detected, please install conda"
 	echo "https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html#regular-installation"
-	exit 1
+else
+
+	# If conda environment exists, activate it. Otherwise create it
+	if ! (conda env list | grep ${MULE_ENV_NAME}) >> /dev/null
+	then
+		echo "Couldn't find environment, creating environment..."
+		conda env create -f MULE_environment.yml
+	fi
+
+	echo "Activating environment..."
+	conda activate ${MULE_ENV_NAME}
+
+	cd ${MULE_DIR}
 fi
-
-# If conda environment exists, activate it. Otherwise create it
-if ! (conda env list | grep ${MULE_ENV_NAME}) >> /dev/null
-then
-	echo "Couldn't find environment, creating environment..."
-	conda env create -f MULE_environment.yml
-fi
-
-echo "Activating environment..."
-conda activate ${MULE_ENV_NAME}
-
-cd ${MULE_DIR}
