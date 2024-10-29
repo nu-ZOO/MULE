@@ -1,0 +1,33 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+   
+      strategy:
+        fail-fast: false
+        matrix:
+          python-version: [3.12]
+          platform: [ubuntu-20.04]
+        runs-on: ${{ matrix.platform }}
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up
+        run: |
+          wget https://repo.anaconda.com/miniconda/Miniconda3-py3.12_4.9.2-Linux-x86_64.sh
+          bash miniconda.sh -b -p $HOME/miniconda
+          source $HOME/miniconda/etc/profile.d/conda.sh
+          
+          echo ----------Conda Installed-----------
+          
+          source setup.sh
+          
+      - name: Run tests
+        run: |
+          PYTEST_ADDOPTS=--color=yes HYPOTHESIS_PROFILE=travis-ci pytest -v 1
+  
