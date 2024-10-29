@@ -1,0 +1,43 @@
+# This workflow will install MULE and run all the tests with pytest
+
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+   
+      strategy:
+        fail-fast: false
+        matrix:
+          python-version: [3.12]
+          platform: [ubuntu-20.04]
+      runs-on: ${{ matrix.platform }}
+    
+      steps:
+        - uses: actions/checkout@v4
+      
+        - name: Set up
+          run: |
+            wget https://repo.anaconda.com/miniconda/Miniconda3-py312_24.9.2-0-Linux-x86_64.sh -O miniconda.sh
+            bash miniconda.sh -b -p $HOME/miniconda
+            source $HOME/miniconda/etc/profile.d/conda.sh
+
+            echo 
+            echo ************************************
+            echo ----------Conda Installed-----------
+            echo ************************************
+            echo 
+            
+            source setup.sh
+            
+            echo 
+            echo ************************************
+            echo ---------------test-----------------
+            echo ************************************
+            echo
+            
+            PYTEST_ADDOPTS=--color=yes HYPOTHESIS_PROFILE=travis-ci python -m pytest -v 
+  
