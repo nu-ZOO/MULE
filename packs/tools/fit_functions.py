@@ -40,7 +40,10 @@ def finger_signal(xs         : np.array,
     '''
 
     # Collect the position and amplitudes of the finger plot peaks
-    poispeaks_pos = np.arange(0, scs.poisson.ppf(maxpercent, poismu))
+    if poismu != 0:
+        poispeaks_pos = np.arange(0, scs.poisson.ppf(maxpercent, poismu))
+    else:
+        poispeaks_pos = np.array([0])
     realpeaks_pos = gain * poispeaks_pos + bl
     realpeaks_amp = amp * scs.poisson.pmf(poispeaks_pos, poismu)
 
