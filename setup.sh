@@ -8,6 +8,10 @@ MULE_ENV_NAME=MULE-${PYTHON_VERSION}-${DATE}
 # set directory path to variable
 export MULE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
+# setup environment variables
+export PATH=$MULE_DIR/bin:$PATH
+
+
 echo "$(<${MULE_DIR}/assets/MULE.txt)"
 
 echo "Identified directory: $MULE_DIR"
