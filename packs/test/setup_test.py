@@ -2,6 +2,7 @@ import os
 import subprocess
 
 from pytest                import mark
+from pytest                import raises
 
 
 
@@ -23,3 +24,11 @@ def test_executable_runs_successfully(pack):
     assert subprocess.run(run_pack).returncode == 0
 
 
+def test_incorrect_pack_returns_error():
+    bin_dir = str(os.environ['MULE_DIR'])
+
+    # give an incorrect pack
+    run_pack = ["python3", bin_dir + "/bin/mule", "donkey", "config"]
+
+    with raises(subprocess.CalledProcessError):
+        subprocess.run(run_pack, check = True)
