@@ -14,6 +14,7 @@ from typing import Optional
 
 # imports start from MULE/
 from packs.core.core_utils import flatten
+from packs.types import types
 
 """
 Processing utilities
@@ -355,10 +356,12 @@ def format_wfs(data      :  np.ndarray,
 
     '''
     # remove data component of dtype for event_information table
-    e_dtype = np.dtype(wdtype.descr[:-channels])
+    e_dtype = types.event_info_type
     # if only one channel, select relevant information. Otherwise, split event by channel
     if channels == 1:
         event_information = [list(data[i])[:4] for i in range(len(data))]
+        # add channel: 1 for each row
+        [x.append(1) for x in event_information]
         waveform = [[(data[j][0], 0, list(data[j])[-i:][0]) for i in reversed(range(1, channels+1))] for j in range(len(data))]
     else:
         event_information = [list(data[i])[:5] for i in range(len(data))]
@@ -494,7 +497,7 @@ def process_bin_WD2(file_path, save_path, overwrite = False, counts = -1):
         print("No chunking selected...")
         # read in data
         with open(file_path, 'rb') as file:
-            data = read_binary(file_path, wdtype)
+            data = read_binary(file, wdtype)
 
         # format_data
         event_info, rwf = format_wfs(data, wdtype, samples, channels)
