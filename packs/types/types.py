@@ -8,3 +8,11 @@ event_info_type = np.dtype([
             ('sampling_period', np.uint64), 
             ('channels', np.int32),
             ])
+
+def rwf_type(samples):
+    rwf_type        = nd.type([
+                ('event_number', np.uint32),
+                ('channels', np.int32),
+                ('rwf', np.float32, (samples,))
+    
+    ])  
