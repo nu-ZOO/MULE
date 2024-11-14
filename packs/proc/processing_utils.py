@@ -8,6 +8,10 @@ import warnings
 
 import h5py
 
+from typing import BinaryIO
+from typing import Generic
+from typing import Optional
+
 # imports start from MULE/
 from packs.core.core_utils import flatten
 
@@ -107,7 +111,7 @@ def raw_to_h5_WD1(PATH, save_h5 = False, verbose = False, print_mod = 0):
     return data
 
 
-def generate_rwf_type(samples):
+def generate_rwf_type(samples  :  int) -> np.ndtype:
     """
     Generates the data-type for raw waveforms 
 
@@ -129,7 +133,8 @@ def generate_rwf_type(samples):
             ('rwf', np.float32, (samples,))
         ])
 
-def read_defaults_WD2(file, byte_order):
+def read_defaults_WD2(file        :  BinaryIO, 
+                      byte_order  :  str) -> (int, int, int, int):
     '''
     Provided with an open WD2 binary file, will provide the header information.
 
@@ -156,7 +161,8 @@ def read_defaults_WD2(file, byte_order):
     return (event_number, timestamp, samples, sampling_period)
 
 
-def process_header(file_path, byte_order = None):
+def process_header(file_path  :  str, 
+                   byte_order :  Optional[str] = None) -> (np.dtype, int, int, int):
     '''
     Collect the relevant information from the file's header, and determine if its valid 
 
@@ -245,7 +251,9 @@ def process_header(file_path, byte_order = None):
 
 
 
-def binary_to_h5(file_path, wdtype, save_path, channels, samples):
+def binary_to_h5(file_path,
+                 wdtype,
+                 save_path, channels, samples):
     '''
     DEPRECATED: This function has been refactored and will be removed soon.
     Function that uses the provided datatype from the header, creates the h5 dataframe and saves the binary
@@ -296,7 +304,10 @@ def binary_to_h5(file_path, wdtype, save_path, channels, samples):
         # write waveforms
         h5f.create_dataset('raw_wf', data=flat_rwf)
 
-def read_binary(file, wdtype, counts = -1,  offset = 0):
+def read_binary(file    :  BinaryIO,
+                wdtype  :  np.dtype, 
+                counts  :  Optional[int] = -1,  
+                offset  :  Optional[int] = 0) -> np.ndarray:
     '''
     Reads the binary in with the expected format/offset
 
@@ -321,7 +332,10 @@ def read_binary(file, wdtype, counts = -1,  offset = 0):
 
     return data
 
-def format_wfs(data, wdtype, samples, channels):
+def format_wfs(data      :  np.ndarray,
+               wdtype    :  np.dtype, 
+               samples   :  int, 
+               channels  :  int) -> (np.ndarray, np.ndarray):
     '''
     Formats the data for saving purposes.
 
@@ -329,9 +343,9 @@ def format_wfs(data, wdtype, samples, channels):
     ----------
 
         data      (ndarray)  :  Unformatted data from binary file
-        wdtype    (ndarray)  :  Custom data type for extracting information from
+        wdtype    (ndtype)   :  Custom data type for extracting information from
                                 binary files
-        samples   (str)      :  Number of samples in each waveform list
+        samples   (int)      :  Number of samples in each waveform list
         channels  (int)      :  The first event number in the file (generally)
 
     Returns
@@ -357,7 +371,10 @@ def format_wfs(data, wdtype, samples, channels):
 
     return event_information, waveform
 
-def save_data(event_information, rwf, save_path, event_number = 0):
+def save_data(event_information  :  np.ndarray, 
+              rwf                :  np.ndarray, 
+              save_path          :  str, 
+              event_number       :  Optional[int] = 0):
     '''
     Produces the h5 files given the event information and raw waveforms
 
@@ -393,7 +410,9 @@ def save_data(event_information, rwf, save_path, event_number = 0):
 
     h5f.close()
 
-def check_save_path(save_path, overwrite, iterator = 0):
+def check_save_path(save_path  :  str, 
+                    overwrite  :  bool, 
+                    iterator   :  Optional[int] = 0) -> str:
     '''
     Checks that the save_path is valid/doesn't already exist and if it does, other `overwrite` it
     or create an additional file with the addage '_iterator'
@@ -421,7 +440,6 @@ def check_save_path(save_path, overwrite, iterator = 0):
             save_path = new_path[0] + '_' + str(iterator) + '.' + new_path[1]
 
         warnings.warn("File already exists at `save_path` but overwrite described as false. Altering save_path to:")
-        print(f"{save_path}")
         iterator += 1
         if iterator > 100:
             raise RuntimeError('Unable to find valid save path after 100 attempts.')
@@ -433,6 +451,7 @@ def check_save_path(save_path, overwrite, iterator = 0):
         except:
             warnings.warn("Overwriting of saved file failed as it cannot be found.")
             pass
+
     return save_path
 
 
@@ -459,6 +478,7 @@ def process_bin_WD2(file_path, save_path, overwrite = False, counts = -1):
     
     # Ensure save path is clear
     save_path = check_save_path(save_path, overwrite)
+    print(save_path)
 
     # collect binary information
     wdtype, samples, sampling_period, channels = process_header(file_path)
