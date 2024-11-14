@@ -6,7 +6,7 @@ from pytest                import raises
 
 
 
-@mark.parametrize("pack", ["acq", "proc", "test"])
+@mark.parametrize("pack", ["acq", "proc", "tests"])
 def test_executable_runs_successfully(pack):
     '''
     This test is made to check if the current executable method for
