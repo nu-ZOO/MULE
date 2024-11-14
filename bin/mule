@@ -27,10 +27,10 @@ MULE pack runtime executable
 Use 'mule --help' for more information
 ======================================''', formatter_class=argparse.RawTextHelpFormatter)
 
-parser.add_argument("pack", choices = ['acq','proc', 'test'], help = '''The pack implemented: 
-        acq  - Acquisition of data using wavedump 1
-        proc - Processing of data
-        test - Testing directory (IGNORE)
+parser.add_argument("pack", choices = ['acq','proc', 'tests'], help = '''The pack implemented: 
+        acq   - Acquisition of data using wavedump 1
+        proc  - Processing of data
+        tests - Testing directory (IGNORE)
         ''')
 parser.add_argument("config", help = 'The config file provided to the pack, this differs based on which pack youre using')
 # acquire arguments

@@ -28,6 +28,8 @@ the h5 format.
 
 def raw_to_h5_WD1(PATH, save_h5 = False, verbose = False, print_mod = 0):
     '''
+    **UNTESTED/DEPRECATED. BE AWARE THIS FUNCTION MAY NOT WORK AS DESIRED**
+
     Takes binary files data files (.dat) produced using Wavedump 1
     and decodes them into waveforms, that are then inserted into 
     pandas dataframes.
@@ -112,7 +114,7 @@ def raw_to_h5_WD1(PATH, save_h5 = False, verbose = False, print_mod = 0):
     return data
 
 
-def generate_rwf_type(samples  :  int) -> np.ndtype:
+def generate_rwf_type(samples  :  int) -> np.dtype:
     """
     Generates the data-type for raw waveforms 
 
