@@ -58,6 +58,8 @@ then
 		case $yn in
 			Y ) install_conda; break;;
 			N ) echo "MULE activation aborted"; exit;;
+		esac
+	done
 fi
 
 # If conda environment exists, activate it. Otherwise create it
