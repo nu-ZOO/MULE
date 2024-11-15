@@ -49,10 +49,11 @@ echo "$(<${MULE_DIR}/assets/MULE.txt)"
 echo "Identified directory: $MULE_DIR"
 
 # If conda isn't installed, install conda
-if ! which conda >> /dev/null
-then
-	echo "No Conda installation detected."
-	echo @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+if conda --version ; then
+	echo Initialising Conda...
+else
+	echo "No Conda installation detected, installing conda."
 	echo 'Download conda? [Y/N]'
 	select yn in "Yes" "No"; do
 		case $yn in
