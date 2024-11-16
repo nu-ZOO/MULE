@@ -54,11 +54,11 @@ if conda --version ; then
 	echo Initialising Conda...
 else
 	echo "No Conda installation detected, installing conda."
-	echo 'Download conda? [Y/N]'
-	select yn in "Yes" "No"; do
+	echo 'Download conda? Select [1/2]:'
+	select yn in Yes No; do
 		case $yn in
-			Y ) install_conda; break;;
-			N ) echo "MULE activation aborted"; exit;;
+			Yes ) install_conda; break;;
+			No ) echo "MULE activation aborted"; return;;
 		esac
 	done
 fi
