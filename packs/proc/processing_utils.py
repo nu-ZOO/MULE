@@ -1,4 +1,4 @@
-
+import io
 import sys
 import os
 import numpy  as np
@@ -378,23 +378,28 @@ def save_data(event_information  :  np.ndarray,
         None
 
     '''
+    try:
+        # check if first set of events, if so 'w', otherwise 'a'
+        if event_number == 0:
+            h5f = h5py.File(save_path, 'w')
+            evt_info = h5f.create_group('event_information')
+            rwf_grp = h5f.create_group('rwf')
+        else:
+            h5f = h5py.File(save_path, 'a')
+            # creates groups if they dont exist
+            evt_info = h5f.require_group('event_information')
+            rwf_grp = h5f.require_group('rwf')
 
-    # check if first set of events, if so 'w', otherwise 'a'
-    if event_number == 0:
-        h5f = h5py.File(save_path, 'w')
-        evt_info = h5f.create_group('event_information')
-        rwf_grp = h5f.create_group('rwf')
-    else:
-        h5f = h5py.File(save_path, 'a')
-        # creates groups if they dont exist
-        evt_info = h5f.require_group('event_information')
-        rwf_grp = h5f.require_group('rwf')
-    
-    evt_info.create_dataset('ei_' + str(event_number), data=event_information)
-    # write waveforms
-    rwf_grp.create_dataset('rwf_' + str(event_number), data=rwf)
+        evt_info.create_dataset('ei_' + str(event_number), data=event_information)
+        # write waveforms
+        rwf_grp.create_dataset('rwf_' + str(event_number), data=rwf)
 
-    h5f.close()
+        h5f.close()
+    finally:
+        # close if it exists
+        if isinstance(h5f, io.IOBase):
+            h5f.close()
+
 
 def check_save_path(save_path  :  str, 
                     overwrite  :  bool, 
@@ -409,6 +414,10 @@ def check_save_path(save_path  :  str,
         save_path  (str)   :  Path to saved file
         overwrite  (bool)  :  Boolean for overwriting pre-existing files
         iterator   (int)   :  Value to add to the end of the save_path if the previous already exists.
+
+Example
+
+Open the file "demofile3.txt" and overwrite the content:
 
     Returns
     -------
