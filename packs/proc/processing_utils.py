@@ -224,32 +224,13 @@ def process_header(file_path  :  str,
     # check that event header is as expected
     if (event_number_1 -1 == event_number) and (samples_1 == samples) and sampling_period_1 == (sampling_period):
         print(f"{channels} channels detected. Processing accordingly...")
-
-        # generate data type
-        wdtype = np.dtype([
-            ('event_number', np.uint32), 
-            ('timestamp', np.uint64), 
-            ('samples', np.uint32), 
-            ('sampling_period', np.uint64), 
-            ('channels', np.int32),
-            ] + 
-            [(f'chan_{i+1}', np.float32, (samples,)) for i in range(0,channels)]
-        )
     else:
         print(f"Single channel detected. If you're expecting more channels, something has gone wrong.\nProcessing accordingly...")
         channels = 1
-
-            
-         # generate data type
-        wdtype = np.dtype([
-            ('event_number', np.uint32), 
-            ('timestamp', np.uint64), 
-            ('samples', np.uint32), 
-            ('sampling_period', np.uint64),
-            ('chan_1', np.float32, (samples,))
-        ])   
-            
+    
     file.close()
+    # collect data types
+    wdtype = types.generate_wfdtype(channels, samples)
     return wdtype, samples, sampling_period, channels
 
 
