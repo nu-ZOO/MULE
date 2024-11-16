@@ -426,13 +426,23 @@ Open the file "demofile3.txt" and overwrite the content:
     
     '''
 
+    name, ext = os.path.splitext(save_path)
+    counter = 1
+
+    if overwrite == False:
+        while os.path.exists(save_path):
+            save_path = name + str(counter) + ext
+            counter += 1
+    
+    return save_path
+    '''
     if os.path.isfile(save_path) and overwrite == False:
         # if this has been done before, change _1 to _2, or _2 to _3, etc.
         new_path = save_path.split('.')
         if iterator > 0: 
-            save_path = new_path[0][:-2] + '_' + str(iterator) + '.' + new_path[1]
+            save_path = new_path[0][:-2] + ' ' + str(iterator) + '.' + new_path[1]
         else:
-            save_path = new_path[0] + '_' + str(iterator) + '.' + new_path[1]
+            save_path = new_path[0] + ' ' + str(iterator) + '.' + new_path[1]
 
         warnings.warn("File already exists at `save_path` but overwrite described as false. Altering save_path to:")
         iterator += 1
@@ -447,7 +457,7 @@ Open the file "demofile3.txt" and overwrite the content:
             warnings.warn("Overwriting of saved file failed as it cannot be found.")
             pass
 
-    return save_path
+    return save_path'''
 
 
 def process_bin_WD2(file_path, save_path, overwrite = False, counts = -1):
