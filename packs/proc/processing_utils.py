@@ -277,7 +277,7 @@ def binary_to_h5(file_path,
     # convert to list of tuples and then structured numpy array
     event_information = list(map(tuple, event_information))
     event_information = np.array(event_information, dtype = e_dtype)
-    flat_rwf = np.array(flatten(waveform), dtype = generate_rwf_type(samples))
+    flat_rwf = np.array(flatten(waveform), dtype = types.rwf_type(samples))
 
 
     ### SEPARATE THIS INTO SEPARATE FUNCTION
@@ -311,7 +311,6 @@ def read_binary(file    :  BinaryIO,
 
     '''
     # be aware, you're passing through the open file object
-    #print(file, wdtype, counts)
     data = np.fromfile(file, dtype=wdtype, count = counts, offset = offset)
 
     return data
@@ -328,7 +327,7 @@ def format_wfs(data      :  np.ndarray,
 
         data      (ndarray)  :  Unformatted data from binary file
         wdtype    (ndtype)   :  Custom data type for extracting information from
-                                binary files
+                                unformatted data
         samples   (int)      :  Number of samples in each waveform list
         channels  (int)      :  The first event number in the file (generally)
 
@@ -343,7 +342,7 @@ def format_wfs(data      :  np.ndarray,
     # if only one channel, select relevant information. Otherwise, split event by channel
     if channels == 1:
         event_information = [list(data[i])[:4] for i in range(len(data))]
-        # add channel: 1 for each row
+        # add channel = 1 for each row
         [x.append(1) for x in event_information]
         waveform = [[(data[j][0], 0, list(data[j])[-i:][0]) for i in reversed(range(1, channels+1))] for j in range(len(data))]
     else:
@@ -353,7 +352,7 @@ def format_wfs(data      :  np.ndarray,
     # convert to list of tuples and then structured numpy array
     event_information = list(map(tuple, event_information))
     event_information = np.array(event_information, dtype = e_dtype)
-    waveform = np.array(flatten(waveform), dtype = generate_rwf_type(samples))
+    waveform = np.array(flatten(waveform), dtype = types.rwf_type(samples))
 
     return event_information, waveform
 
@@ -435,32 +434,12 @@ Open the file "demofile3.txt" and overwrite the content:
             counter += 1
     
     return save_path
-    '''
-    if os.path.isfile(save_path) and overwrite == False:
-        # if this has been done before, change _1 to _2, or _2 to _3, etc.
-        new_path = save_path.split('.')
-        if iterator > 0: 
-            save_path = new_path[0][:-2] + ' ' + str(iterator) + '.' + new_path[1]
-        else:
-            save_path = new_path[0] + ' ' + str(iterator) + '.' + new_path[1]
-
-        warnings.warn("File already exists at `save_path` but overwrite described as false. Altering save_path to:")
-        iterator += 1
-        if iterator > 100:
-            raise RuntimeError('Unable to find valid save path after 100 attempts.')
-        save_path = check_save_path(save_path, overwrite = overwrite, iterator = iterator)
-    else:
-        # this is the case where we want to overwrite
-        try:
-            os.remove(save_path)
-        except:
-            warnings.warn("Overwriting of saved file failed as it cannot be found.")
-            pass
-
-    return save_path'''
 
 
-def process_bin_WD2(file_path, save_path, overwrite = False, counts = -1):
+def process_bin_WD2(file_path  :  str, 
+                    save_path  :  str, 
+                    overwrite  :  Optional[bool] = False,
+                    counts     :  Optional[int]  = -1):
 
     '''
     Takes a binary file and outputs the containing waveform information in a h5 file.
@@ -528,3 +507,4 @@ def process_bin_WD2(file_path, save_path, overwrite = False, counts = -1):
                 # save data
                 save_data(event_info, rwf, save_path, counter)
             counter += (counts)
+
