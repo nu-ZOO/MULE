@@ -10,12 +10,14 @@ event_info_type = np.dtype([
             ])
 
 def rwf_type(samples):
-    rwf_type        = nd.type([
+    rwf_type        = np.dtype([
                 ('event_number', np.uint32),
                 ('channels', np.int32),
                 ('rwf', np.float32, (samples,))
     
     ])  
+    
+    return rwf_type
 
 
 def generate_wfdtype(channels, samples):
