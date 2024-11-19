@@ -2,10 +2,13 @@ import os
 
 from packs.core.io                import read_config_file
 from packs.proc.processing_utils  import process_bin_WD2
-
+from packs.core.core_utils        import check_test
 
 def proc(config_file):
     print("Starting the processing pack...")
+
+    # checks if test, if so ends run
+    check_test(config_file)
 
     # take full path
     full_path = os.path.expandvars(config_file)
