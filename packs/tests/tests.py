@@ -1,3 +1,8 @@
-def tests():
+from packs.core.core_utils        import check_test
+
+
+def tests(config_file):
     print("This works as expected: testing")
     print("In here you should read the config provided")
+
+    check_test(config_file)

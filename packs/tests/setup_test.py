@@ -14,7 +14,7 @@ def test_executable_runs_successfully(pack):
     '''
     bin_dir = str(os.environ['MULE_DIR'])
                                                             # config will need to be improved
-    run_pack = ["python3", bin_dir + "/bin/mule", str(pack), "config"]
+    run_pack = ["python3", bin_dir + "/bin/mule", str(pack), "test_config"]
 
     # ensure output is successful (no errors)
 
