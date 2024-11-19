@@ -46,4 +46,4 @@ except ModuleNotFoundError:
     traceback.print_exc()
     exit(1)
 else:
-    pack()
+    pack(args.config)
