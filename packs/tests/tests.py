@@ -5,4 +5,5 @@ def tests(config_file):
     print("This works as expected: testing")
     print("In here you should read the config provided")
 
-    check_test(config_file)
+    if check_test(config_file):
+        return

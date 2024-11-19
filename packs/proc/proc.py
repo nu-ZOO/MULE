@@ -8,7 +8,8 @@ def proc(config_file):
     print("Starting the processing pack...")
 
     # checks if test, if so ends run
-    check_test(config_file)
+    if check_test(config_file):
+        return
 
     # take full path
     full_path = os.path.expandvars(config_file)
