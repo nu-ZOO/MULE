@@ -1,5 +1,3 @@
-
-
 def flatten(xss):
     '''
     Flattens a 2D list
@@ -12,3 +10,5 @@ def check_test(file):
     if file == "test_config":
         print("Test config executable run successfully")
         return True
+    else:
+        return False
