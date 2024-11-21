@@ -382,7 +382,7 @@ def check_save_path(save_path  :  str,
                     iterator   :  Optional[int] = 0) -> str:
     '''
     Checks that the save_path is valid/doesn't already exist and if it does, other `overwrite` it
-    or create an additional file with the addage '_iterator'
+    or create an additional file with a number added.
 
     Parameters
     ----------
@@ -390,10 +390,6 @@ def check_save_path(save_path  :  str,
         save_path  (str)   :  Path to saved file
         overwrite  (bool)  :  Boolean for overwriting pre-existing files
         iterator   (int)   :  Value to add to the end of the save_path if the previous already exists.
-
-Example
-
-Open the file "demofile3.txt" and overwrite the content:
 
     Returns
     -------
@@ -409,6 +405,8 @@ Open the file "demofile3.txt" and overwrite the content:
         while os.path.exists(save_path):
             save_path = name + str(counter) + ext
             counter += 1
+            if counter > 100:
+                raise RuntimeError("Writing to file went over 100 loops to find a unique name. Sort out your files!")
     
     return save_path
 
