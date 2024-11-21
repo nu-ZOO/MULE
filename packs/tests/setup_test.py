@@ -1,9 +1,11 @@
 import os
 import subprocess
+import configparser
 
 from pytest                import mark
 from pytest                import raises
 
+from packs.core.io         import read_config_file
 
 
 @mark.parametrize("pack", ["acq", "proc", "tests"])
@@ -32,3 +34,26 @@ def test_incorrect_pack_returns_error():
 
     with raises(subprocess.CalledProcessError):
         subprocess.run(run_pack, check = True)
+
+def test_config_read_correctly():
+
+    MULE_dir = str(os.environ['MULE_DIR'])
+    file_path = MULE_dir + '/packs/tests/data/configs/test_config.conf'
+
+    expected_dict = {'test_1': 'a string', 'test_2': 6.03, 'test_3': 5, 'test_4': True}
+
+    x = read_config_file(file_path)
+
+    assert (x == expected_dict)
+
+
+@mark.parametrize("config, error", [('malformed_header.conf', configparser.MissingSectionHeaderError),
+                                    ('empty_entry.conf', SyntaxError),
+                                    ('incorrect_format.conf', configparser.ParsingError)])
+def test_malformed_config(config, error):
+    # provides expected output when config file is malformed
+    MULE_dir = str(os.environ['MULE_DIR'])
+    file_path = MULE_dir + '/packs/tests/data/configs/' + config
+
+    with raises(error):
+        x = read_config_file(file_path)
