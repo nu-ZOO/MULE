@@ -11,6 +11,7 @@ from packs.proc.processing_utils   import read_defaults_WD2
 from packs.proc.processing_utils   import process_header
 from packs.proc.processing_utils   import read_binary
 from packs.proc.processing_utils   import format_wfs
+from packs.proc.processing_utils   import check_save_path
 
 from packs.types.types             import generate_wfdtype
 from packs.types.types             import rwf_type
@@ -122,3 +123,27 @@ def test_formatting_works():
     
     assert rwf.equals(check_rwf)
     assert evt_info.equals(check_evt_info)
+
+
+def test_ensure_new_path_created():
+    
+    MULE_dir = str(os.environ['MULE_DIR'])
+    data_path     = MULE_dir + '/packs/tests/data/three_channels_WD2.h5'
+    new_data_path = MULE_dir + '/packs/tests/data/three_channels_WD21.h5'
+
+    found_path    = check_save_path(data_path, overwrite = False)
+
+    assert found_path == new_data_path
+
+def test_runtime_error_when_too_many_save_files():
+    
+    MULE_dir     = str(os.environ['MULE_DIR'])
+    relevant_dir = MULE_dir + '/packs/tests/data/repetitive_data/'
+    # generate 101 empty files
+    with open(relevant_dir + f'test_.txt', 'w'):
+            pass
+    for i in range(1, 101):
+        with open(relevant_dir + f'test_{i}.txt', 'w'):
+            pass
+    with raises(RuntimeError):
+        check_save_path(relevant_dir + 'test_.txt', overwrite=False)
