@@ -211,60 +211,6 @@ def process_header(file_path  :  str,
     return wdtype, samples, sampling_period, channels
 
 
-
-def binary_to_h5(file_path,
-                 wdtype,
-                 save_path, channels, samples):
-    '''
-    DEPRECATED: This function has been refactored and will be removed soon.
-    Function that uses the provided datatype from the header, creates the h5 dataframe and saves the binary
-
-    Parameters
-    ----------
-
-        file_path  (str)        :  Path to binary file
-        wdtype     (ndtype)     :  Custom data type for extracting information from
-                                   binary files
-        save_path  (str)        :  Path to saved file
-        channels   (int)        :  Number of channels in acquisition
-        samples    (int)        :  Number of samples per event
-
-    Returns
-    -------
-        event_information (ndarray)  :  
-        waveform_data     (ndarray)  : 
-
-
-    '''
-    # opens file
-    with open(file_path, 'rb') as file:
-        data = np.fromfile(file, dtype=wdtype)
-
-    
-    # remove data component of dtype for event_information table
-    e_dtype = np.dtype(wdtype.descr[:-channels])
-    # if only one channel, select relevant information. Otherwise, split event by channel
-    if channels == 1:
-        event_information = [list(data[i])[:4] for i in range(len(data))]
-        waveform = [[(data[j][0], 0, list(data[j])[-i:][0]) for i in reversed(range(1, channels+1))] for j in range(len(data))]
-    else:
-        event_information = [list(data[i])[:5] for i in range(len(data))]
-        waveform = [[(data[j][0], data[j][4] - i, list(data[j])[-i:][0]) for i in reversed(range(1, channels+1))] for j in range(len(data))]
-
-    # convert to list of tuples and then structured numpy array
-    event_information = list(map(tuple, event_information))
-    event_information = np.array(event_information, dtype = e_dtype)
-    flat_rwf = np.array(flatten(waveform), dtype = types.rwf_type(samples))
-
-
-    ### SEPARATE THIS INTO SEPARATE FUNCTION
-    # write event information
-    with h5py.File(save_path, 'w') as h5f:
-        
-        h5f.create_dataset('event_info', data=event_information)
-        # write waveforms
-        h5f.create_dataset('raw_wf', data=flat_rwf)
-
 def read_binary(file    :  BinaryIO,
                 wdtype  :  np.dtype, 
                 counts  :  Optional[int] = -1,  
@@ -372,9 +318,11 @@ def save_data(event_information  :  np.ndarray,
 
         h5f.close()
     finally:
-        # close if it exists
+        # close if it exists. This is a silly catch case
+        # only included to ensure if some weirdness happens the file will close
         if isinstance(h5f, io.IOBase):
             h5f.close()
+            
 
 
 def check_save_path(save_path  :  str, 
