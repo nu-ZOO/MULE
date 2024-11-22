@@ -164,3 +164,5 @@ cython_debug/
 
 # ignore the new .txt files generated in test
 /packs/tests/data/repetitive_data/test_*.txt
+# temporary h5 files get ignored
+*tmp.h5

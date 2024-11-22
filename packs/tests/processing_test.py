@@ -3,6 +3,9 @@ import sys
 
 import numpy as np
 import pandas as pd
+import subprocess
+
+import configparser
 
 from pytest                        import mark
 from pytest                        import raises
@@ -135,6 +138,7 @@ def test_ensure_new_path_created():
 
     assert found_path == new_data_path
 
+
 def test_runtime_error_when_too_many_save_files():
     
     MULE_dir     = str(os.environ['MULE_DIR'])
@@ -147,3 +151,36 @@ def test_runtime_error_when_too_many_save_files():
             pass
     with raises(RuntimeError):
         check_save_path(relevant_dir + 'test_.txt', overwrite=False)
+
+@mark.parametrize("config, inpt, output, comparison", [("process_WD2_1channel.conf", "one_channel_WD2.bin", "one_channel_tmp.h5", "one_channel_WD2.h5"), 
+                                           ("process_WD2_3channel.conf", "three_channels_WD2.bin", "three_channels_tmp.h5", "three_channels_WD2.h5")])
+def test_decode_produces_expected_output(config, inpt, output, comparison):
+
+    MULE_dir     = str(os.environ['MULE_DIR'])
+    data_dir     = "/packs/tests/data/" 
+
+    # ensure path is correct
+    file_path       = MULE_dir + data_dir + inpt
+    save_path       = MULE_dir + data_dir + output
+    comparison_path = MULE_dir + data_dir + comparison
+    config_path     = MULE_dir + data_dir + "configs/" + config
+
+    # collect samples from header
+    _, samples, _, _ = process_header(file_path)
+
+    # rewrite paths to files
+    cnfg = configparser.ConfigParser()
+    cnfg.read(config_path)
+    cnfg.set('required', 'file_path', "'" +  file_path + "'") # need to add comments around for config reasons
+    cnfg.set('required', 'save_path', "'" +  save_path + "'")
+
+    with open(config_path, 'w') as cfgfile:
+        cnfg.write(cfgfile)
+
+    # run processing pack decode
+    run_pack = ['python3', MULE_dir + "/bin/mule", "proc", config_path]
+    subprocess.run(run_pack)
+    # check that the resulting dataframe is as expected
+    assert load_evt_info(save_path).equals(load_evt_info(comparison_path))
+    assert load_rwf_info(save_path, samples).equals(load_rwf_info(comparison_path, samples))
+    
