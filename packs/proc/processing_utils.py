@@ -185,7 +185,7 @@ def process_header(file_path  :  str,
         warnings.warn("Warning: No byte order provided. This may cause issues if transferring data between machines.")
         byte_order = sys.byteorder
     elif (byte_order != 'little') and (byte_order != 'big'):
-        raise Exception(f'Invalid byte order provided: {byteorder}. Please provide the correct byte order for your machine.')
+        raise NameError(f'Invalid byte order provided: {byteorder}. Please provide the correct byte order for your machine.')
     
     # open file
     file = open(file_path, 'rb')
