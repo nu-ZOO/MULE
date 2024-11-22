@@ -15,6 +15,7 @@ from packs.proc.processing_utils   import process_header
 from packs.proc.processing_utils   import read_binary
 from packs.proc.processing_utils   import format_wfs
 from packs.proc.processing_utils   import check_save_path
+from packs.proc.processing_utils   import save_data
 
 from packs.types.types             import generate_wfdtype
 from packs.types.types             import rwf_type
@@ -70,8 +71,9 @@ def test_header_processed_correctly():
     assert result[2] == smpl_prd
     assert result[3] == channels
 
-
-def test_endian_error_when_reading():
+@mark.parametrize("function, error", [(process_header, NameError),
+                                      (read_defaults_WD2, ValueError)])
+def test_endian_error_when_reading(function, error):
 
     MULE_dir = str(os.environ['MULE_DIR'])
     file = MULE_dir + '/packs/tests/data/three_channels_WD2.bin'
@@ -79,9 +81,9 @@ def test_endian_error_when_reading():
 
     byte_order = 'Big' # this will raise a ValueError 
     
-    with raises(ValueError):
+    with raises(error):
         with open(file, 'rb') as f:
-            event_number, timestamp, samples, sampling_period = read_defaults_WD2(f, byte_order)
+            holder = function(f, byte_order)
 
 
 def test_invalid_file_for_reading():
@@ -184,3 +186,4 @@ def test_decode_produces_expected_output(config, inpt, output, comparison):
     assert load_evt_info(save_path).equals(load_evt_info(comparison_path))
     assert load_rwf_info(save_path, samples).equals(load_rwf_info(comparison_path, samples))
     
+

@@ -57,3 +57,19 @@ def test_malformed_config(config, error):
 
     with raises(error):
         x = read_config_file(file_path)
+
+@mark.parametrize("config, error", [('nonexistent_WD_version.conf', RuntimeError),
+                                    ('nonexistent_process.conf', ValueError)])
+                                    # these will change to value errors when other
+                                    # packs are implemented
+def test_processing_catches(config, error):
+
+    MULE_dir = str(os.environ['MULE_DIR'])
+    config_path = MULE_dir + "/packs/tests/data/configs/" + config
+
+    run_pack = ["python3", MULE_dir + "/bin/mule", "proc", config_path]
+
+    with raises(subprocess.CalledProcessError):
+        subprocess.run(run_pack, check = True)
+  
+        

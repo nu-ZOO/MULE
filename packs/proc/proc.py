@@ -23,6 +23,6 @@ def proc(config_file):
             if conf_dict['wavedump_edition'] == 2:
                 process_bin_WD2(**arg_dict)
             else:
-                print(f"wavedump edition {conf_dict['wavedump_edition']} decoding isn't currently implemented.")
+                raise RuntimeError(f"wavedump edition {conf_dict['wavedump_edition']} decoding isn't currently implemented.")
         case default:
-            print(f"process {conf_dict['process']} not currently implemented.")
+            raise RuntimeError(f"process {conf_dict['process']} not currently implemented.")
