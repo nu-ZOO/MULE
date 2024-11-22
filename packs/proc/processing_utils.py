@@ -459,7 +459,7 @@ def process_bin_WD2(file_path  :  str,
         event_info, rwf = format_wfs(data, wdtype, samples, channels)
 
         # save data
-        save_data(event_info, rwf, save_path, counts)
+        save_data(event_info, rwf, save_path)
     else:
         print(f"Chunking by {counts}...")
         # collect data into dataframes based on desired splitting
