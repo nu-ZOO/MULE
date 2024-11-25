@@ -206,6 +206,11 @@ def process_header(file_path  :  str,
         channels = 1
     
     file.close()
+
+    # this is a check to ensure that if you've screwed up the acquisition, it warns you adequately
+    if samples == 0:
+        raise RuntimeError(r"Unable to decode raw waveforms that have sample size zero. In wavedump 2, when collecting data from a single channel make sure that 'multiple channels per file' isn't checked.")
+
     # collect data types
     wdtype = types.generate_wfdtype(channels, samples)
     return wdtype, samples, sampling_period, channels
