@@ -31,7 +31,7 @@ def raw_to_h5_WD1(PATH, save_h5 = False, verbose = False, print_mod = 0):
     **UNTESTED/DEPRECATED. BE AWARE THIS FUNCTION MAY NOT WORK AS DESIRED**
 
     Takes binary files data files (.dat) produced using Wavedump 1
-    and decodes them into waveforms, that are then inserted into 
+    and decodes them into waveforms, that are then inserted into
     pandas dataframes.
 
     These dataframes can then be saved as h5 files for further use.
@@ -50,7 +50,7 @@ def raw_to_h5_WD1(PATH, save_h5 = False, verbose = False, print_mod = 0):
         data        (int 2D array) :       2D array of events
                                            First element defines event
                                            Second element defines ADC value
-    ''' 
+    '''
 
     # Makeup of the header (array[n]) where n is:
     # 0 - event size (ns in our case, with extra 24 samples)
@@ -77,17 +77,17 @@ def raw_to_h5_WD1(PATH, save_h5 = False, verbose = False, print_mod = 0):
         if len(array) == 0:
             print("Processing finished! Saving...")
             break
-        
+
         # printing events
         if (array[4] % int(print_mod) == 0):
             print("Event {}".format(array[4]))
-        
+
         # verbose check
         if (verbose == True):
             array_tag = ['event size (ns)', 'board ID', 'pattern', 'board channel', 'event counter', 'trigger tag']
             for i in range(len(array)):
                 print("{}: {}".format(array_tag[i], array[i]))
-        
+
 
 
         # alter event size to the samples
@@ -98,7 +98,7 @@ def raw_to_h5_WD1(PATH, save_h5 = False, verbose = False, print_mod = 0):
 
         int16bit = np.dtype('<H')
         data.append(np.fromfile(file, dtype=int16bit, count=event_size))
-    
+
     if (save_h5 == True):
         print("Saving raw waveforms...")
         # change path to dump the h5 file where
@@ -113,7 +113,7 @@ def raw_to_h5_WD1(PATH, save_h5 = False, verbose = False, print_mod = 0):
 
     return data
 
-def read_defaults_WD2(file        :  BinaryIO, 
+def read_defaults_WD2(file        :  BinaryIO,
                       byte_order  :  str) -> (int, int, int, int):
     '''
     Provided with an open WD2 binary file, will provide the header information.
@@ -141,10 +141,10 @@ def read_defaults_WD2(file        :  BinaryIO,
     return (event_number, timestamp, samples, sampling_period)
 
 
-def process_header(file_path  :  str, 
+def process_header(file_path  :  str,
                    byte_order :  Optional[str] = None) -> (np.dtype, int, int, int):
     '''
-    Collect the relevant information from the file's header, and determine if its valid 
+    Collect the relevant information from the file's header, and determine if its valid
 
     Header is formatted for WD2 as shown:
         Event number    -> uint32 (4 bytes)
@@ -153,7 +153,7 @@ def process_header(file_path  :  str,
         Sampling Period -> uint64 (8 bytes)
         (OPTIONAL)
         Channels        -> int32 (8 bytes)
-    
+
     Waveform data is 4-byte float (float32).
 
     This extra optional channel poses problems, so need to consider it.
@@ -185,8 +185,8 @@ def process_header(file_path  :  str,
         warnings.warn("Warning: No byte order provided. This may cause issues if transferring data between machines.")
         byte_order = sys.byteorder
     elif (byte_order != 'little') and (byte_order != 'big'):
-        raise NameError(f'Invalid byte order provided: {byteorder}. Please provide the correct byte order for your machine.')
-    
+        raise NameError(f'Invalid byte order provided: {byte_order}. Please provide the correct byte order for your machine.')
+
     # open file
     file = open(file_path, 'rb')
 
@@ -195,8 +195,15 @@ def process_header(file_path  :  str,
     channels        = int.from_bytes(file.read(4), byteorder=byte_order)
 
     # then read in a full collection of data, and see if the following header makes sense.
-    dataset         = file.read(4*samples*channels)
-    event_number_1, timestamp_1, samples_1, sampling_period_1 = read_defaults_WD2(file, byte_order)
+    # if it explicitly breaks, assume 1 channel, raise a warning and continue.
+    try:
+        dataset         = file.read(4*samples*channels)
+        event_number_1, timestamp_1, samples_1, sampling_period_1 = read_defaults_WD2(file, byte_order)
+    except:
+        warnings.warn("process_header() unable to read file, defaulting to 1-channel description.\nIf this is not what you expect, please ensure your data was collected correctly.")
+        event_number_1 = -1
+        samples_1 = -1
+        sampling_period_1 = -1
 
     # check that event header is as expected
     if (event_number_1 -1 == event_number) and (samples_1 == samples) and sampling_period_1 == (sampling_period):
@@ -204,7 +211,7 @@ def process_header(file_path  :  str,
     else:
         print(f"Single channel detected. If you're expecting more channels, something has gone wrong.\nProcessing accordingly...")
         channels = 1
-    
+
     file.close()
 
     # this is a check to ensure that if you've screwed up the acquisition, it warns you adequately
@@ -217,8 +224,8 @@ def process_header(file_path  :  str,
 
 
 def read_binary(file    :  BinaryIO,
-                wdtype  :  np.dtype, 
-                counts  :  Optional[int] = -1,  
+                wdtype  :  np.dtype,
+                counts  :  Optional[int] = -1,
                 offset  :  Optional[int] = 0) -> np.ndarray:
     '''
     Reads the binary in with the expected format/offset
@@ -244,8 +251,8 @@ def read_binary(file    :  BinaryIO,
     return data
 
 def format_wfs(data      :  np.ndarray,
-               wdtype    :  np.dtype, 
-               samples   :  int, 
+               wdtype    :  np.dtype,
+               samples   :  int,
                channels  :  int) -> (np.ndarray, np.ndarray):
     '''
     Formats the data for saving purposes.
@@ -284,9 +291,9 @@ def format_wfs(data      :  np.ndarray,
 
     return event_information, waveform
 
-def save_data(event_information  :  np.ndarray, 
-              rwf                :  np.ndarray, 
-              save_path          :  str, 
+def save_data(event_information  :  np.ndarray,
+              rwf                :  np.ndarray,
+              save_path          :  str,
               event_number       :  Optional[int] = 0):
     '''
     Produces the h5 files given the event information and raw waveforms
@@ -327,11 +334,11 @@ def save_data(event_information  :  np.ndarray,
         # only included to ensure if some weirdness happens the file will close
         if isinstance(h5f, io.IOBase):
             h5f.close()
-            
 
 
-def check_save_path(save_path  :  str, 
-                    overwrite  :  bool, 
+
+def check_save_path(save_path  :  str,
+                    overwrite  :  bool,
                     iterator   :  Optional[int] = 0) -> str:
     '''
     Checks that the save_path is valid/doesn't already exist and if it does, other `overwrite` it
@@ -346,9 +353,9 @@ def check_save_path(save_path  :  str,
 
     Returns
     -------
-        save_path  (str)  :  Valid path to saved file, either unmodified or altered to add '_N' 
+        save_path  (str)  :  Valid path to saved file, either unmodified or altered to add '_N'
                              where N is number of loops it had to do before finding a valid N
-    
+
     '''
 
     name, ext = os.path.splitext(save_path)
@@ -360,19 +367,19 @@ def check_save_path(save_path  :  str,
             counter += 1
             if counter > 100:
                 raise RuntimeError("Writing to file went over 100 loops to find a unique name. Sort out your files!")
-    
+
     return save_path
 
 
-def process_bin_WD2(file_path  :  str, 
-                    save_path  :  str, 
+def process_bin_WD2(file_path  :  str,
+                    save_path  :  str,
                     overwrite  :  Optional[bool] = False,
                     counts     :  Optional[int]  = -1):
 
     '''
     Takes a binary file and outputs the containing waveform information in a h5 file.
 
-    For particularly large waveforms/number of events. You can 'chunk' the data such that 
+    For particularly large waveforms/number of events. You can 'chunk' the data such that
     each dataset holds `counts` events.
 
     Parameters
@@ -387,7 +394,7 @@ def process_bin_WD2(file_path  :  str,
     -------
         None
     '''
-    
+
     # Ensure save path is clear
     save_path = check_save_path(save_path, overwrite)
     print(save_path)
@@ -400,7 +407,7 @@ def process_bin_WD2(file_path  :  str,
         header_size = 24
     else:
         header_size = 28
-    
+
     # Process data chunked or unchunked
     if counts == -1:
         print("No chunking selected...")
@@ -421,7 +428,7 @@ def process_bin_WD2(file_path  :  str,
             with open(file_path, 'rb') as file:
                 # create offset equivalent to size of each chunk multiplied
                 # by number of events already passed, and read data
-                offset = (counter*samples*channels*4) + (header_size * counter) 
+                offset = (counter*samples*channels*4) + (header_size * counter)
                 data = read_binary(file_path, wdtype, counts, offset)
 
                 # check binary has content in it
