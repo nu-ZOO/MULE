@@ -32,8 +32,8 @@ def load_evt_info(save_path, merge = False):
             for j in q:
                 h5_data.append(j)
 
-    
-    return pd.DataFrame(list(map(list, h5_data)), columns = (types.event_info_type).names)
+
+    return pd.DataFrame(map(list, h5_data), columns = (types.event_info_type).names)
 
 
 def load_rwf_info(file_path  :  str,
@@ -49,7 +49,7 @@ def load_rwf_info(file_path  :  str,
                         for j in q:
                             h5_data.append(j)
 
-    return pd.DataFrame(list(map(list, h5_data)), columns = (types.rwf_type(samples)).names)
+    return pd.DataFrame(map(list, h5_data), columns = (types.rwf_type(samples)).names)
 
 
 def read_config_file(file_path  :  str) -> dict:
@@ -66,5 +66,5 @@ def read_config_file(file_path  :  str) -> dict:
             #
             # we can setup stricter rules at some other time
             arg_dict[key] = ast.literal_eval(config[section][key])
-    
+
     return arg_dict
