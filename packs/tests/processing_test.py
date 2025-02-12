@@ -9,6 +9,7 @@ import configparser
 
 from pytest                        import mark
 from pytest                        import raises
+from pytest                        import warns
 
 from packs.proc.processing_utils   import read_defaults_WD2
 from packs.proc.processing_utils   import process_header
@@ -84,7 +85,8 @@ def test_header_works_when_data_malformed():
     MULE_dir = str(os.environ['MULE_DIR'])
     file = MULE_dir + '/packs/tests/data/malformed_data.bin'
 
-    process_header(file)
+    with warns(UserWarning):
+        process_header(file)
 
 @mark.parametrize("function, error", [(process_header, NameError),
                                       (read_defaults_WD2, ValueError)])

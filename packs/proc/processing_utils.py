@@ -200,7 +200,7 @@ def process_header(file_path  :  str,
     try:
         dataset         = file.read(4*samples*channels)
         event_number_1, timestamp_1, samples_1, sampling_period_1 = read_defaults_WD2(file, byte_order)
-    except:
+    except MemoryError as e:
         warnings.warn("process_header() unable to read file, defaulting to 1-channel description.\nIf this is not what you expect, please ensure your data was collected correctly.")
         event_number_1 = -1
         samples_1 = -1
@@ -338,8 +338,7 @@ def save_data(event_information  :  np.ndarray,
 
 
 def check_save_path(save_path  :  str,
-                    overwrite  :  bool,
-                    iterator   :  Optional[int] = 0) -> str:
+                    overwrite  :  bool):
     '''
     Checks that the save_path is valid/doesn't already exist and if it does, other `overwrite` it
     or create an additional file with a number added.
@@ -349,7 +348,6 @@ def check_save_path(save_path  :  str,
 
         save_path  (str)   :  Path to saved file
         overwrite  (bool)  :  Boolean for overwriting pre-existing files
-        iterator   (int)   :  Value to add to the end of the save_path if the previous already exists.
 
     Returns
     -------
@@ -397,7 +395,7 @@ def process_bin_WD2(file_path  :  str,
 
     # Ensure save path is clear
     save_path = check_save_path(save_path, overwrite)
-    print(save_path)
+    print(f'\nData input   :  {file_path}\nData output  :  {save_path}')
 
     # collect binary information
     wdtype, samples, sampling_period, channels = process_header(file_path)
