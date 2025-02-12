@@ -19,6 +19,6 @@ dependencies:
   - hypothesis
   - jupyterlab
   - jupyter
-  - flaky
+  - flaky=3.8.1
   - sphinx
 prefix: /home/e78368jw/anaconda3/envs/MULE-3.12-10-24
