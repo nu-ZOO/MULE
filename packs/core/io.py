@@ -58,9 +58,9 @@ def load_rwf_info(file_path  :  str,
     with h5py.File(file_path) as f:
         rwf_info = f.get('rwf')
         for i in rwf_info.keys():
-                        q = rwf_info.get(str(i))
-                        for j in q:
-                            h5_data.append(j)
+            q = rwf_info.get(str(i))
+            for j in q:
+                h5_data.append(j)
 
     return pd.DataFrame(map(list, h5_data), columns = (types.rwf_type(samples)).names)
 
