@@ -235,7 +235,7 @@ def read_binary(file    :  BinaryIO,
     ----------
 
         file    (BufferedReader)  :  Opened file
-        wdtype  (ndarray)         :  Custom data type for extracting information from
+        wdtype  (ndtype)         :  Custom data type for extracting information from
                                      binary files
         counts  (int)             :  How many events you want to read in. -1 sets it to take all events.
         offset  (int)             :  Offset at which to start reading the data. Used for chunking purposes
@@ -329,12 +329,11 @@ def save_data(event_information  :  np.ndarray,
         # write waveforms
         rwf_grp.create_dataset('rwf_' + str(event_number), data=rwf)
 
-        h5f.close()
     finally:
-        # close if it exists. This is a silly catch case
-        # only included to ensure if some weirdness happens the file will close
-        if isinstance(h5f, io.IOBase):
-            h5f.close()
+        # `finally` will always run regardless of what happens in the `try` case
+        # even if an error occurs, so the file close is here to ensure no matter
+        # what happens, the file doesn't stay open.
+        h5f.close()
 
 
 
