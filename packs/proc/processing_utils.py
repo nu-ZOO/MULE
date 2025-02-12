@@ -179,8 +179,9 @@ def process_header(file_path  :  str,
         channels         (int)     :  Number of channels in the data
     '''
 
-    # ensure you're using the right byteorder. If you take the data from one machine to another
-    # of differing endianness, you may have issues here!
+    # ensure you're using the right byteorder defined by your machine.
+    # If you take the data from one machine to another of differing endianness,
+    # you may have issues here!
     if byte_order == None:
         warnings.warn("Warning: No byte order provided. This may cause issues if transferring data between machines.")
         byte_order = sys.byteorder
