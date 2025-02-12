@@ -2,23 +2,23 @@ name: MULE-3.12-10-24
 channels:
   - defaults
 dependencies:
-  - python=3.12
-  - numpy
-  - iminuit
-  - matplotlib
-  - seaborn
-  - tables
-  - h5py
-  - pandas
-  - tqdm
-  - scipy
-  - cython
-  - pytables
-  - coverage
-  - pytest
-  - hypothesis
-  - jupyterlab
-  - jupyter
-  - flaky=3.8.1
-  - sphinx
+  - python      = 3.12
+  - numpy       = 1.26.4
+  - iminuit     = 2.18.0
+  - matplotlib  = 3.9.2
+  - seaborn     = 0.13.2
+  - tables      = 3.9.2
+  - h5py        = 3.11.0
+  - pandas      = 2.2.2
+  - tqdm        = 4.66.5
+  - scipy       = 1.13.1
+  - cython      = 3.0.11
+  - pytables    = 3.10.1
+  - coverage    = 7.6.1
+  - pytest      = 7.4.4
+  - hypothesis  = 6.111.0
+  - jupyterlab  = 4.2.5
+  - jupyter     = 1.0.0
+  - flaky       = 3.7.0
+  - sphinx      = 7.3.7
 prefix: /home/e78368jw/anaconda3/envs/MULE-3.12-10-24
