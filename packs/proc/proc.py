@@ -22,6 +22,8 @@ def proc(config_file):
         case 'decode':
             if conf_dict['wavedump_edition'] == 2:
                 process_bin_WD2(**arg_dict)
+            elif conf_dict['wavedump_edition'] == 1:
+                process_bin_WD1(**arg_dict)
             else:
                 raise RuntimeError(f"wavedump edition {conf_dict['wavedump_edition']} decoding isn't currently implemented.")
         case default:
