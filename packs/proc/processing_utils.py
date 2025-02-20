@@ -369,13 +369,139 @@ def check_save_path(save_path  :  str,
     return save_path
 
 
+def process_event_lazy_WD1(file_object  :  BinaryIO,
+                           sample_size  :  int):
+
+    '''
+    WAVEDUMP 1: Generator that outputs each event iteratively from an opened binary file
+
+    Parameters
+    ----------
+
+        file_object  (obj)  :  Opened file object
+        sample_size  (int)  :  Time difference between each sample in waveform (2ns for V1730B digitiser)
+
+    Returns
+    -------
+        data  (generator)  :  Generator object containing one event's worth of data
+                              across each event
+    '''
+
+    # read first header
+    header = np.fromfile(file_object, dtype = 'i', count = 6)
+
+    # continue only if data exists
+    while len(header) > 0:
+
+        # alter header to match expected size
+        header[0] = header[0] - 24
+        event_size = header[0] // sample_size
+
+        # collect waveform, no of samples and timestamp
+        yield (np.fromfile(file_object, dtype = np.dtype('<H'), count = event_size), event_size, header[-1])
+
+        # collect next header
+        header = np.fromfile(file_object, dtype = 'i', count = 6)
+
+    print("Processing Finished!")
+
+
+def process_bin_WD1(file_path    :  str,
+                    save_path    :  str,
+                    sample_size  :  int,
+                    overwrite    :  Optional[bool] = False,
+                    counts       :  Optional[int] = -1,
+                    print_mod    :  Optional[int] = -1):
+
+    '''
+    WAVEDUMP 1: Takes a binary file and outputs the containing information in a h5 file.
+    This only works for individual channels at the moment, as wavedump 1 saves each channel
+    as a separate file.
+
+    For particularly large waveforms/number of events. You can 'chunk' the data such that
+    each dataset holds `counts` events.
+
+    # Makeup of the header (header[n]) where n is:
+    # 0 - event size (ns in our case, with extra 24 samples)
+    # 1 - board ID
+    # 2 - pattern (not sure exactly what this means)
+    # 3 - board channel
+    # 4 - event counter
+    # 5 - Time-tag for the trigger
+
+
+    Parameters
+    ----------
+
+        file_path    (str)   :  Path to binary file
+        save_path    (str)   :  Path to saved file
+        sample_size  (int)   :  Size of each sample in an event (2 ns in the case of V1730B digitiser)
+        overwrite    (bool)  :  Boolean for overwriting pre-existing files
+        counts       (int)   :  The number of events per chunks. -1 implies no chunking of data.
+
+
+    Returns
+    -------
+        None
+    '''
+
+    int16bit = np.dtype('<H')
+
+    # lets build it here first and break it up later
+    save_path = check_save_path(save_path, overwrite)
+    print(save_path)
+
+    waveforms = []
+    event_info = []
+
+    with open(file_path, 'rb') as file:
+
+        for i, (waveform, samples, timestamp) in enumerate(process_event_lazy_WD1(file, sample_size)):
+
+            if (i % print_mod == 0) and (print_mod != -1):
+                print(f"Event {i}")
+            # if you wanted to add pre-processing it would be in here with a flag
+
+
+            event_info.append((i, timestamp, samples, sample_size, 1)) # tuples
+            waveforms.append((i, 0, waveform))
+
+            # apply correct datatype to these events here.
+            e_dtype = types.event_info_type
+            wf_dtype = types.rwf_type_WD1(samples)
+
+            # chunking, adding +1 to not isolate the 0th event
+            if counts != -1 and (i+1) % counts == 0:
+                event_info = np.array(event_info, dtype = e_dtype)
+
+                waveforms = np.array(waveforms, dtype = wf_dtype)
+                save_data(event_info, waveforms, save_path, (i - counts + 1))
+
+                # reset
+                event_info = []
+                waveforms  = []
+
+            final_count = i
+
+
+        # if no chunking, save at the end
+        if counts == -1:
+            event_info = np.array(event_info, dtype = e_dtype)
+            waveforms = np.array(waveforms, dtype = wf_dtype)
+            save_data(event_info, waveforms, save_path, 0)
+        else:
+            event_info = np.array(event_info, dtype = e_dtype)
+            waveforms = np.array(waveforms, dtype = wf_dtype)
+            save_data(event_info, waveforms, save_path, (final_count - (final_count % counts)))
+
+
 def process_bin_WD2(file_path  :  str,
                     save_path  :  str,
                     overwrite  :  Optional[bool] = False,
                     counts     :  Optional[int]  = -1):
 
     '''
-    Takes a binary file and outputs the containing waveform information in a h5 file.
+    WAVEDUMP 2: Takes a binary file and outputs the containing waveform information in a h5 file.
 
     For particularly large waveforms/number of events. You can 'chunk' the data such that
     each dataset holds `counts` events.
