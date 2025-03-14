@@ -428,6 +428,7 @@ def process_bin_WD1(file_path    :  str,
     # 3 - board channel
     # 4 - event counter
     # 5 - Time-tag for the trigger
+    # Each of which is a signed 4byte integer
 
 
     Parameters
@@ -445,7 +446,6 @@ def process_bin_WD1(file_path    :  str,
         None
     '''
 
-    int16bit = np.dtype('<H')
 
     # lets build it here first and break it up later
     save_path = check_save_path(save_path, overwrite)

@@ -1,7 +1,7 @@
 import os
 
 from packs.core.io                import read_config_file
-from packs.proc.processing_utils  import process_bin_WD2
+from packs.proc.processing_utils  import process_bin_WD2, process_bin_WD1
 from packs.core.core_utils        import check_test
 
 def proc(config_file):
