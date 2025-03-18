@@ -105,17 +105,23 @@ def read_config_file(file_path  :  str) -> dict:
 
 
 def writer(path       :  str,
-           group      :  str):
+           group      :  str,
+           overwrite  :  Optional[bool] = True):
     '''
     Standard function that tries to put data into a dataset within a h5 file.
     It will create everything it needs up the chain (dataset, group, path) when
     flag 'w' is created.
     '''
 
-    # open file if exists, create group
+    # open file if exists, create group or overwrite it
     h5f = h5py.File(path, 'a')
 
+    if overwrite:
+        if group in h5f:
+            del h5f[group]
+
     gr  = h5f.require_group(group)
+
 
     def write(dataset  :  str,
               data     :  np.ndarray):

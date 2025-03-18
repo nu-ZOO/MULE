@@ -340,8 +340,7 @@ def save_data(event_information  :  np.ndarray,
 
 
 def check_save_path(save_path  :  str,
-                    group      :  str,
-                    overwrite  :  bool):
+                    overwrite  :  Optional[bool] = True):
     '''
     Checks that the save_path is valid/doesn't already exist and if it does, other `overwrite` it
     or create an additional file with a number added.
@@ -350,7 +349,6 @@ def check_save_path(save_path  :  str,
     ----------
 
         save_path  (str)   :  Path to saved file
-        group      (group) :  Group to which data is being saved
         overwrite  (bool)  :  Boolean for overwriting pre-existing files
 
     Returns
@@ -369,11 +367,6 @@ def check_save_path(save_path  :  str,
             counter += 1
             if counter > 100:
                 raise RuntimeError("Writing to file went over 100 loops to find a unique name. Sort out your files!")
-    else:
-        # if it does exist, remove the group you're replacing
-        h5f = h5py.File(save_path, 'a')
-        if group in h5f:
-            del h5f[group]
 
     return save_path
 
@@ -458,11 +451,11 @@ def process_bin_WD1(file_path    :  str,
 
     # lets build it here first and break it up later
     # destroy the group within the file if you're overwriting
-    save_path = check_save_path(save_path, "RAW" , overwrite)
+    save_path = check_save_path(save_path, overwrite)
     print(save_path)
 
     # create writer object
-    write = writer(save_path, 'RAW')
+    write = writer(save_path, 'RAW', overwrite)
 
     waveforms = []
     event_info = []
@@ -512,7 +505,7 @@ def process_bin_WD2(file_path  :  str,
     '''
 
     # Ensure save path is clear
-    save_path = check_save_path(save_path, "RAW", overwrite)
+    save_path = check_save_path(save_path, overwrite)
     print(f'\nData input   :  {file_path}\nData output  :  {save_path}')
 
     # collect binary information
