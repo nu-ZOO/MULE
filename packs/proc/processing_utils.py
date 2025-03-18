@@ -14,6 +14,7 @@ from typing import Optional
 
 # imports start from MULE/
 from packs.core.core_utils import flatten
+from packs.core.io         import writer
 from packs.types import types
 
 """
@@ -292,6 +293,7 @@ def format_wfs(data      :  np.ndarray,
 
     return event_information, waveform
 
+
 def save_data(event_information  :  np.ndarray,
               rwf                :  np.ndarray,
               save_path          :  str,
@@ -455,8 +457,12 @@ def process_bin_WD1(file_path    :  str,
 
 
     # lets build it here first and break it up later
-    save_path = check_save_path(save_path, overwrite)
+    # destroy the group within the file if you're overwriting
+    save_path = check_save_path(save_path, "RAW" , overwrite)
     print(save_path)
+
+    # create writer object
+    write = writer(save_path, 'RAW')
 
     waveforms = []
     event_info = []
@@ -467,39 +473,18 @@ def process_bin_WD1(file_path    :  str,
 
             if (i % print_mod == 0) and (print_mod != -1):
                 print(f"Event {i}")
-            # if you wanted to add pre-processing it would be in here with a flag
 
-
-            event_info.append((i, timestamp, samples, sample_size, 1)) # tuples
-            waveforms.append((i, 0, waveform))
-
-            # apply correct datatype to these events here.
+            # enforce stucture upon data
             e_dtype = types.event_info_type
             wf_dtype = types.rwf_type_WD1(samples)
 
-            # chunking, adding +1 to not isolate the 0th event
-            if counts != -1 and (i+1) % counts == 0:
-                event_info = np.array(event_info, dtype = e_dtype)
-
-                waveforms = np.array(waveforms, dtype = wf_dtype)
-                save_data(event_info, waveforms, save_path, (i - counts + 1))
-
-                # reset
-                event_info = []
-                waveforms  = []
-
-            final_count = i
+            event_info = np.array((i, timestamp, samples, sample_size, 1), dtype = e_dtype)
+            waveforms = np.array((i, 0, waveform), dtype = wf_dtype)
 
 
-        # if no chunking, save at the end
-        if counts == -1:
-            event_info = np.array(event_info, dtype = e_dtype)
-            waveforms = np.array(waveforms, dtype = wf_dtype)
-            save_data(event_info, waveforms, save_path, 0)
-        else:
-            event_info = np.array(event_info, dtype = e_dtype)
-            waveforms = np.array(waveforms, dtype = wf_dtype)
-            save_data(event_info, waveforms, save_path, (final_count - (final_count % counts)))
+            # add data to df lazily
+            write('event_info', event_info)
+            write('rwf', waveforms)
 
 
 def process_bin_WD2(file_path  :  str,
@@ -527,7 +512,7 @@ def process_bin_WD2(file_path  :  str,
     '''
 
     # Ensure save path is clear
-    save_path = check_save_path(save_path, overwrite)
+    save_path = check_save_path(save_path, "RAW", overwrite)
     print(f'\nData input   :  {file_path}\nData output  :  {save_path}')
 
     # collect binary information
