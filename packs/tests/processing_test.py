@@ -153,7 +153,7 @@ def test_ensure_new_path_created():
     data_path     = MULE_dir + '/packs/tests/data/three_channels_WD2.h5'
     new_data_path = MULE_dir + '/packs/tests/data/three_channels_WD21.h5'
 
-    found_path    = check_save_path(data_path, overwrite = False)
+    found_path    = check_save_path(data_path, 'rwf' , overwrite = False)
 
     assert found_path == new_data_path
 
@@ -169,7 +169,7 @@ def test_runtime_error_when_too_many_save_files():
         with open(relevant_dir + f'test_{i}.txt', 'w'):
             pass
     with raises(RuntimeError):
-        check_save_path(relevant_dir + 'test_.txt', overwrite=False)
+        check_save_path(relevant_dir + 'test_.txt', 'rwf', overwrite=False)
 
 @mark.parametrize("config, inpt, output, comparison", [("process_WD2_1channel.conf", "one_channel_WD2.bin", "one_channel_tmp.h5", "one_channel_WD2.h5"),
                                            ("process_WD2_3channel.conf", "three_channels_WD2.bin", "three_channels_tmp.h5", "three_channels_WD2.h5")])
