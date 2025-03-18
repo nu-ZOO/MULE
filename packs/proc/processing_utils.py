@@ -338,6 +338,7 @@ def save_data(event_information  :  np.ndarray,
 
 
 def check_save_path(save_path  :  str,
+                    group      :  str,
                     overwrite  :  bool):
     '''
     Checks that the save_path is valid/doesn't already exist and if it does, other `overwrite` it
@@ -347,6 +348,7 @@ def check_save_path(save_path  :  str,
     ----------
 
         save_path  (str)   :  Path to saved file
+        group      (group) :  Group to which data is being saved
         overwrite  (bool)  :  Boolean for overwriting pre-existing files
 
     Returns
@@ -365,6 +367,11 @@ def check_save_path(save_path  :  str,
             counter += 1
             if counter > 100:
                 raise RuntimeError("Writing to file went over 100 loops to find a unique name. Sort out your files!")
+    else:
+        # if it does exist, remove the group you're replacing
+        h5f = h5py.File(save_path, 'a')
+        if group in h5f:
+            del h5f[group]
 
     return save_path
 
