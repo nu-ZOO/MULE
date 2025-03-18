@@ -1,9 +1,11 @@
 import pandas as pd
+import numpy  as np
 
 import h5py
 import ast
 import configparser
 
+from typing import Optional
 
 from packs.types import types
 
@@ -99,3 +101,34 @@ def read_config_file(file_path  :  str) -> dict:
             arg_dict[key] = ast.literal_eval(config[section][key])
 
     return arg_dict
+
+
+
+def writer(path       :  str,
+           group      :  str):
+    '''
+    Standard function that tries to put data into a dataset within a h5 file.
+    It will create everything it needs up the chain (dataset, group, path) when
+    flag 'w' is created.
+    '''
+
+    # open file if exists, create group
+    h5f = h5py.File(path, 'a')
+
+    gr  = h5f.require_group(group)
+
+    def write(dataset  :  str,
+              data     :  np.ndarray):
+        # create dataset if doesnt exist, if does make larger
+        if dataset in gr:
+            dset = gr[dataset]
+            dset.resize((dset.shape[0] + 1, *dset.shape[1:]))
+            dset[-1] = data
+        else:
+            max_shape = (None,) + data.shape
+            dset = gr.require_dataset(dataset, shape = (1,) + data.shape,
+                                      maxshape = max_shape, dtype = data.dtype,
+                                      chunks = True)
+            dset[0] = data
+
+    return write
