@@ -138,3 +138,25 @@ def writer(path       :  str,
             dset[0] = data
 
     return write
+
+def reader(path     :  str,
+           group    :  str,
+           dataset  :  str):
+    '''
+    Standard function that stupidly reads events iteratively from h5 file group.
+
+    Should be redone with this documentation in mind:
+    https://docs.h5py.org/en/stable/high/dataset.html#reading-writing-data
+    '''
+
+
+    with h5py.File(path) as f:
+
+        # select group from file
+        gr = f[group]
+        dataset = gr[dataset]
+
+        for row in dataset:
+            yield row
+
+
