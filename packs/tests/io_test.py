@@ -31,16 +31,20 @@ def test_reader_writer(tmp_path):
                     ('bigfloat', float),
                     ])
 
-    test_dataset = np.array((0, 1.0, False, 25000.323232), dtype = test_dtype)
+    test_dataset  = [np.array((0, 1.0, False, 25000.323232), dtype = test_dtype),
+                     np.array((1, 4.0, True, 23456789.321), dtype = test_dtype)]
 
     # create the writer object
     with writer(file, 'test_group', overwrite = True) as scribe:
         # write something to it
-        scribe('test_dataset', test_dataset)
+        scribe('test_dataset', test_dataset[0])
+        scribe('test_dataset', test_dataset[1])
 
-    # read it out
+    # read it out, should pop an a StopIteration error
     scholar = reader(file, 'test_group', 'test_dataset')
-    scroll  = np.array(next(scholar))
+    with raises(StopIteration):
+        assert next(scholar).tolist() == test_dataset[0].tolist()
+        assert next(scholar).tolist() == test_dataset[1].tolist()
+        next(scholar)
 
-    assert scroll.tolist() == test_dataset.tolist()
 
