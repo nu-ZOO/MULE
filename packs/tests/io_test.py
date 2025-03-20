@@ -20,9 +20,7 @@ def test_reader_writer(tmp_path):
     as fixtures. As this isn't the case yet, there is no need.
     '''
 
-    MULE_dir = str(os.environ['MULE_DIR'])
     file = tmp_path / 'writer_output_tmp.h5'
-    comparison = MULE_dir + '/packs/tests/data/writer_output.h5'
 
     test_dtype = np.dtype([
                     ('int', int),

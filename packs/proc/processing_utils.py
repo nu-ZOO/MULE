@@ -13,7 +13,7 @@ from typing import Generic
 from typing import Optional
 
 # imports start from MULE/
-from packs.core.core_utils import flatten
+from packs.core.core_utils import MalformedHeaderError, flatten
 from packs.core.io         import writer
 from packs.types import types
 
@@ -392,6 +392,9 @@ def process_event_lazy_WD1(file_object  :  BinaryIO,
     # read first header
     header = np.fromfile(file_object, dtype = 'i', count = 6)
 
+    # header to check against
+    sanity_header = header.copy()
+
     # continue only if data exists
     while len(header) > 0:
 
@@ -405,6 +408,18 @@ def process_event_lazy_WD1(file_object  :  BinaryIO,
         # collect next header
         header = np.fromfile(file_object, dtype = 'i', count = 6)
 
+        # check if header has correct number of elements and correct information ONCE.
+        if sanity_header is not None:
+            if len(header) == 6:
+                if all([header[0] == sanity_header[0], # event size
+                    header[4] == sanity_header[4] + 1,  # event number +1
+                    header[5] > sanity_header[5]        # timestamp increases
+                    ]):
+                    sanity_header = None
+                else:
+                    raise MalformedHeaderError(sanity_header, header)
+            else:
+                raise MalformedHeaderError(sanity_header, header)
     print("Processing Finished!")
 
 
