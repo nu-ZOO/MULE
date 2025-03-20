@@ -34,10 +34,9 @@ def test_reader_writer():
     test_dataset = np.array((0, 1.0, False, 25000.323232), dtype = test_dtype)
 
     # create the writer object
-    scribe = writer(file, 'test_group', overwrite = True)
-
-    # write something to it
-    scribe('test_dataset', test_dataset)
+    with writer(file, 'test_group', overwrite = True) as scribe:
+        # write something to it
+        scribe('test_dataset', test_dataset)
 
     # read it out
     scholar = reader(file, 'test_group', 'test_dataset')

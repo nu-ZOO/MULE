@@ -5,7 +5,10 @@ import h5py
 import ast
 import configparser
 
+from contextlib import contextmanager
+
 from typing import Optional
+from typing import Generator
 
 from packs.types import types
 
@@ -103,10 +106,10 @@ def read_config_file(file_path  :  str) -> dict:
     return arg_dict
 
 
-
+@contextmanager
 def writer(path       :  str,
            group      :  str,
-           overwrite  :  Optional[bool] = True):
+           overwrite  :  Optional[bool] = True) -> Generator:
     '''
     Standard function that tries to put data into a dataset within a h5 file.
     It will create everything it needs up the chain (dataset, group, path) when
@@ -115,29 +118,32 @@ def writer(path       :  str,
 
     # open file if exists, create group or overwrite it
     h5f = h5py.File(path, 'a')
+    try:
+        if overwrite:
+            if group in h5f:
+                del h5f[group]
 
-    if overwrite:
-        if group in h5f:
-            del h5f[group]
-
-    gr  = h5f.require_group(group)
+        gr  = h5f.require_group(group)
 
 
-    def write(dataset  :  str,
-              data     :  np.ndarray):
-        # create dataset if doesnt exist, if does make larger
-        if dataset in gr:
-            dset = gr[dataset]
-            dset.resize((dset.shape[0] + 1, *dset.shape[1:]))
-            dset[-1] = data
-        else:
-            max_shape = (None,) + data.shape
-            dset = gr.require_dataset(dataset, shape = (1,) + data.shape,
-                                      maxshape = max_shape, dtype = data.dtype,
-                                      chunks = True)
-            dset[0] = data
+        def write(dataset  :  str,
+                  data     :  np.ndarray):
+            # create dataset if doesnt exist, if does make larger
+            if dataset in gr:
+                dset = gr[dataset]
+                dset.resize((dset.shape[0] + 1, *dset.shape[1:]))
+                dset[-1] = data
+            else:
+                max_shape = (None,) + data.shape
+                dset = gr.require_dataset(dataset, shape = (1,) + data.shape,
+                                          maxshape = max_shape, dtype = data.dtype,
+                                          chunks = True)
+                dset[0] = data
 
-    return write
+        yield write
+
+    finally:
+        h5f.close()
 
 def reader(path     :  str,
            group    :  str,
