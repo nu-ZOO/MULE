@@ -12,7 +12,7 @@ from packs.core.io import reader
 from packs.core.io import writer
 
 
-def test_reader_writer():
+def test_reader_writer(tmp_path):
     '''
     The simplest of tests, ensure the writer produces the expected output.
 
@@ -21,7 +21,7 @@ def test_reader_writer():
     '''
 
     MULE_dir = str(os.environ['MULE_DIR'])
-    file = MULE_dir + '/packs/tests/data/writer_output_tmp.h5'
+    file = tmp_path / 'writer_output_tmp.h5'
     comparison = MULE_dir + '/packs/tests/data/writer_output.h5'
 
     test_dtype = np.dtype([
