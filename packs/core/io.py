@@ -155,14 +155,9 @@ def reader(path     :  str,
     https://docs.h5py.org/en/stable/high/dataset.html#reading-writing-data
     '''
 
+    with h5py.File(path, 'r') as h5f:
+        gr = h5f[group]
+        dset = gr[dataset]
 
-    with h5py.File(path) as f:
-
-        # select group from file
-        gr = f[group]
-        dataset = gr[dataset]
-
-        for row in dataset:
+        for row in dset:
             yield row
-
-

@@ -455,9 +455,6 @@ def process_bin_WD1(file_path    :  str,
     print(save_path)
 
 
-    waveforms = []
-    event_info = []
-
     # open file for reading
     with open(file_path, 'rb') as file:
 
