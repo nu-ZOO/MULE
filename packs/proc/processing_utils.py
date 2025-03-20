@@ -454,30 +454,32 @@ def process_bin_WD1(file_path    :  str,
     save_path = check_save_path(save_path, overwrite)
     print(save_path)
 
-    # create writer object
-    write = writer(save_path, 'RAW', overwrite)
 
     waveforms = []
     event_info = []
 
+    # open file for reading
     with open(file_path, 'rb') as file:
 
-        for i, (waveform, samples, timestamp) in enumerate(process_event_lazy_WD1(file, sample_size)):
+        # open writer object
+        with writer(save_path, 'RAW', overwrite) as write:
 
-            if (i % print_mod == 0) and (print_mod != -1):
-                print(f"Event {i}")
+            for i, (waveform, samples, timestamp) in enumerate(process_event_lazy_WD1(file, sample_size)):
 
-            # enforce stucture upon data
-            e_dtype = types.event_info_type
-            wf_dtype = types.rwf_type_WD1(samples)
+                if (i % print_mod == 0) and (print_mod != -1):
+                    print(f"Event {i}")
 
-            event_info = np.array((i, timestamp, samples, sample_size, 1), dtype = e_dtype)
-            waveforms = np.array((i, 0, waveform), dtype = wf_dtype)
+                # enforce stucture upon data
+                e_dtype = types.event_info_type
+                wf_dtype = types.rwf_type_WD1(samples)
+
+                event_info = np.array((i, timestamp, samples, sample_size, 1), dtype = e_dtype)
+                waveforms = np.array((i, 0, waveform), dtype = wf_dtype)
 
 
-            # add data to df lazily
-            write('event_info', event_info)
-            write('rwf', waveforms)
+                # add data to df lazily
+                write('event_info', event_info)
+                write('rwf', waveforms)
 
 
 def process_bin_WD2(file_path  :  str,
