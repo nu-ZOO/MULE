@@ -488,10 +488,15 @@ def process_bin_WD1(file_path    :  str,
                 event_info = np.array((i, timestamp, samples, sample_size, 1), dtype = e_dtype)
                 waveforms = np.array((i, 0, waveform), dtype = wf_dtype)
 
+                # first run-through, collect the header information to extract table size
+                if i == 0:
+                    file_size     = os.path.getsize(file_path)
+                    waveform_size = (samples * 2) + (4*6)
+                    num_of_events = int(file_size / waveform_size)
 
                 # add data to df lazily
-                write('event_info', event_info)
-                write('rwf', waveforms)
+                write('event_info', event_info, (True, num_of_events, i))
+                write('rwf', waveforms, (True, num_of_events, i))
 
 
 def process_bin_WD2(file_path  :  str,
