@@ -23,9 +23,37 @@ The functionality of this repository should cover:
 
 ## Usage
 
-Implement description of full usage, perhaps move this section to docs.
+Usage is currently focused on binary files for readout from the above named systems.
+
+After data collection and having saved the .bin files into the desired directory, one should copy the file path into the config file using a text editor (such as vim). In addtion, the destination file path and name should be enetered in the save_path line. Finally, ensure to have the correct wavedump edition as that will affect decoding.
+
+> **_NOTE_** One can find the config file in /MULE/packs/configs
+
+Once the config file has been edited and saved, one can execute the program from the terminal, after navigating to the directory where the config file was saved, by running:
+
+`mule proc process_WD2_3channel.conf`
+
+This will generate the .h5 file and store them in the predefined location.
+
+In addition, there are several processing funcitons which are not yet run automatically from the config file but that can be found in /MULE/packs/proc
 
 ## Getting Started
 
-EXPLAIN SIMPLEST METHOD FOR INSTALLATION/SETUP
+The simplest method of installation is one done by cloning the github repository and running the setup.sh file from the terminal, as explained below.
+
+To clone the directory one should install git from the terminal with something like pip:
+
+`pip install git`
+
+then, one can clone the repo to the desired directory by using,
+
+`git clone https://github.com/nu-ZOO/MULE.git`
+
+> **_NOTE_** The above link is taken from the repo's github page
+
+The environemnt then needs to be created and activated. This can be achieved by running the following command from the MULE directory:
+
+`source setup.sh`
+
+One can also create an alias to activate the environment easily on every session.
 
