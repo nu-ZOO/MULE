@@ -45,11 +45,11 @@ One can also create an alias to activate the environment easily on every session
 
 Usage is currently focused on binary files for readout from the above named systems.
 
-After data collection and having saved the unprocessed files, one should copy the file path into the config file using a text editor (such as vim). In addtion, the destination file path and name should be enetered in the save_path line. Finally, ensure to have the correct wavedump edition as that will affect decoding.
+To process a file with a pack using MULE, one should create a config file with the required input parameters.
 
-> **_NOTE_** One can find the config file in /MULE/packs/configs
+> **_NOTE_** One can find the config files in /MULE/packs/configs
 
-Once the config file has been edited and saved, one can execute the program from the terminal, including the location of the config file if nexessary. For instance,
+Once the config file has been edited and saved, one can execute the program from the terminal, including the location of the config file if necessary. For instance,
 
 `mule proc process_WD2_3channel.conf`
 
@@ -57,8 +57,8 @@ While choice of packs remains limited, there is work being done to expand this. 
 
 `mule <PACK> <CONFIG>`
 
-This will generate the output, processed file and store them in the predefined location.
+This will generate the output processed file and store them in the predefined location.
 
 ## MULE Auxilary Tools
 
-There are several additonal processing funcitons which are not yet run automatically from the config file but that can be found in /MULE/packs/proc
+There are several additonal processing functions which are not yet run automatically from the config file but that can be found in /MULE/packs/proc
