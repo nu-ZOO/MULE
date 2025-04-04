@@ -338,7 +338,6 @@ def process_bin_WD1(file_path    :  str,
                     save_path    :  str,
                     sample_size  :  int,
                     overwrite    :  Optional[bool] = False,
-                    counts       :  Optional[int] = -1,
                     print_mod    :  Optional[int] = -1):
 
     '''
