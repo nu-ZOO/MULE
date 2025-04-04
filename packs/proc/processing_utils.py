@@ -13,7 +13,8 @@ from typing import Generic
 from typing import Optional
 
 # imports start from MULE/
-from packs.core.core_utils import flatten
+from packs.core.core_utils import MalformedHeaderError, flatten
+from packs.core.io         import writer
 from packs.types import types
 
 """
@@ -23,95 +24,6 @@ This file holds all the relevant functions for processing data from WaveDump 1/2
 the h5 format.
 """
 
-
-
-
-def raw_to_h5_WD1(PATH, save_h5 = False, verbose = False, print_mod = 0):
-    '''
-    **UNTESTED/DEPRECATED. BE AWARE THIS FUNCTION MAY NOT WORK AS DESIRED**
-
-    Takes binary files data files (.dat) produced using Wavedump 1
-    and decodes them into waveforms, that are then inserted into
-    pandas dataframes.
-
-    These dataframes can then be saved as h5 files for further use.
-
-    Parameters
-    ----------
-
-        PATH        (str)       :       File path of interest
-        save_h5     (bool)      :       Flag for saving data
-        verbose     (bool)      :       Flag for outputting information
-        print_mod   (int)       :       Print modifier
-
-    Returns
-    -------
-
-        data        (int 2D array) :       2D array of events
-                                           First element defines event
-                                           Second element defines ADC value
-    '''
-
-    # Makeup of the header (array[n]) where n is:
-    # 0 - event size (ns in our case, with extra 24 samples)
-    # 1 - board ID
-    # 2 - pattern (not sure exactly what this means)
-    # 3 - board channel
-    # 4 - event counter
-    # 5 - Time-tag for the trigger
-
-    # Output data is a collection of ints defined in size
-    # by (event size - 24) // 2
-
-    file = open(PATH, 'rb')
-    data = []
-
-    print("File open! Processing...")
-    # Collect data, while true loops are always dangerous but lets ignore that here :)
-    while (True):
-
-    # take the header information from the file (first 6 elements)
-        array = np.fromfile(file, dtype='i', count=6)
-
-        # breaking condition
-        if len(array) == 0:
-            print("Processing finished! Saving...")
-            break
-
-        # printing events
-        if (array[4] % int(print_mod) == 0):
-            print("Event {}".format(array[4]))
-
-        # verbose check
-        if (verbose == True):
-            array_tag = ['event size (ns)', 'board ID', 'pattern', 'board channel', 'event counter', 'trigger tag']
-            for i in range(len(array)):
-                print("{}: {}".format(array_tag[i], array[i]))
-
-
-
-        # alter event size to the samples
-        array[0] = array[0] - 24
-
-        # collect event
-        event_size = array[0] // 2
-
-        int16bit = np.dtype('<H')
-        data.append(np.fromfile(file, dtype=int16bit, count=event_size))
-
-    if (save_h5 == True):
-        print("Saving raw waveforms...")
-        # change path to dump the h5 file where
-        # the .dat file is
-        directory = PATH[:-3] + "h5"
-
-        h5f = h5py.File(directory, 'w')
-        h5f.create_dataset('pmtrw', data=data)
-        h5f.close()
-    else:
-        directory = ""
-
-    return data
 
 def read_defaults_WD2(file        :  BinaryIO,
                       byte_order  :  str) -> (int, int, int, int):
@@ -292,6 +204,7 @@ def format_wfs(data      :  np.ndarray,
 
     return event_information, waveform
 
+
 def save_data(event_information  :  np.ndarray,
               rwf                :  np.ndarray,
               save_path          :  str,
@@ -338,7 +251,7 @@ def save_data(event_information  :  np.ndarray,
 
 
 def check_save_path(save_path  :  str,
-                    overwrite  :  bool):
+                    overwrite  :  Optional[bool] = True):
     '''
     Checks that the save_path is valid/doesn't already exist and if it does, other `overwrite` it
     or create an additional file with a number added.
@@ -369,13 +282,140 @@ def check_save_path(save_path  :  str,
     return save_path
 
 
+def process_event_lazy_WD1(file_object  :  BinaryIO,
+                           sample_size  :  int):
+
+    '''
+    WAVEDUMP 1: Generator that outputs each event iteratively from an opened binary file
+
+    Parameters
+    ----------
+
+        file_object  (obj)  :  Opened file object
+        sample_size  (int)  :  Time difference between each sample in waveform (2ns for V1730B digitiser)
+
+    Returns
+    -------
+        data  (generator)  :  Generator object containing one event's worth of data
+                              across each event
+    '''
+
+    # read first header
+    header = np.fromfile(file_object, dtype = 'i', count = 6)
+
+    # header to check against
+    sanity_header = header.copy()
+
+    # continue only if data exists
+    while len(header) > 0:
+
+        # alter header to match expected size
+        header[0] = header[0] - 24
+        event_size = header[0] // sample_size
+
+        # collect waveform, no of samples and timestamp
+        yield (np.fromfile(file_object, dtype = np.dtype('<H'), count = event_size), event_size, header[-1])
+
+        # collect next header
+        header = np.fromfile(file_object, dtype = 'i', count = 6)
+
+        # check if header has correct number of elements and correct information ONCE.
+        if sanity_header is not None:
+            if len(header) == 6:
+                if all([header[0] == sanity_header[0], # event size
+                    header[4] == sanity_header[4] + 1,  # event number +1
+                    header[5] > sanity_header[5]        # timestamp increases
+                    ]):
+                    sanity_header = None
+                else:
+                    raise MalformedHeaderError(sanity_header, header)
+            else:
+                raise MalformedHeaderError(sanity_header, header)
+    print("Processing Finished!")
+
+
+def process_bin_WD1(file_path    :  str,
+                    save_path    :  str,
+                    sample_size  :  int,
+                    overwrite    :  Optional[bool] = False,
+                    print_mod    :  Optional[int] = -1):
+
+    '''
+    WAVEDUMP 1: Takes a binary file and outputs the containing information in a h5 file.
+    This only works for individual channels at the moment, as wavedump 1 saves each channel
+    as a separate file.
+
+    For particularly large waveforms/number of events. You can 'chunk' the data such that
+    each dataset holds `counts` events.
+
+    # Makeup of the header (header[n]) where n is:
+    # 0 - event size (ns in our case, with extra 24 samples)
+    # 1 - board ID
+    # 2 - pattern (not sure exactly what this means)
+    # 3 - board channel
+    # 4 - event counter
+    # 5 - Time-tag for the trigger
+    # Each of which is a signed 4byte integer
+
+
+    Parameters
+    ----------
+
+        file_path    (str)   :  Path to binary file
+        save_path    (str)   :  Path to saved file
+        sample_size  (int)   :  Size of each sample in an event (2 ns in the case of V1730B digitiser)
+        overwrite    (bool)  :  Boolean for overwriting pre-existing files
+        counts       (int)   :  The number of events per chunks. -1 implies no chunking of data.
+
+
+    Returns
+    -------
+        None
+    '''
+
+
+    # lets build it here first and break it up later
+    # destroy the group within the file if you're overwriting
+    save_path = check_save_path(save_path, overwrite)
+    print(save_path)
+
+
+    # open file for reading
+    with open(file_path, 'rb') as file:
+
+        # open writer object
+        with writer(save_path, 'RAW', overwrite) as write:
+
+            for i, (waveform, samples, timestamp) in enumerate(process_event_lazy_WD1(file, sample_size)):
+
+                if (i % print_mod == 0) and (print_mod != -1):
+                    print(f"Event {i}")
+
+                # enforce stucture upon data
+                e_dtype = types.event_info_type
+                wf_dtype = types.rwf_type_WD1(samples)
+
+                event_info = np.array((i, timestamp, samples, sample_size, 1), dtype = e_dtype)
+                waveforms = np.array((i, 0, waveform), dtype = wf_dtype)
+
+                # first run-through, collect the header information to extract table size
+                if i == 0:
+                    file_size     = os.path.getsize(file_path)
+                    waveform_size = (samples * 2) + (4*6)
+                    num_of_events = int(file_size / waveform_size)
+
+                # add data to df lazily
+                write('event_info', event_info, (True, num_of_events, i))
+                write('rwf', waveforms, (True, num_of_events, i))
+
+
 def process_bin_WD2(file_path  :  str,
                     save_path  :  str,
                     overwrite  :  Optional[bool] = False,
                     counts     :  Optional[int]  = -1):
 
     '''
-    Takes a binary file and outputs the containing waveform information in a h5 file.
+    WAVEDUMP 2: Takes a binary file and outputs the containing waveform information in a h5 file.
 
     For particularly large waveforms/number of events. You can 'chunk' the data such that
     each dataset holds `counts` events.

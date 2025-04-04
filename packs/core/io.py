@@ -1,9 +1,18 @@
 import pandas as pd
+import numpy  as np
 
 import h5py
 import ast
 import configparser
 
+from contextlib import contextmanager
+
+from typing import Optional
+from typing import Generator
+from typing import Union
+from typing import Tuple
+
+from functools import partial
 
 from packs.types import types
 
@@ -99,3 +108,76 @@ def read_config_file(file_path  :  str) -> dict:
             arg_dict[key] = ast.literal_eval(config[section][key])
 
     return arg_dict
+
+
+@contextmanager
+def writer(path        :  str,
+           group       :  str,
+           overwrite   :  Optional[bool] = True) -> Generator:
+    '''
+    Standard function that tries to put data into a dataset within a h5 file.
+    It will create everything it needs up the chain (dataset, group, path) when
+    flag 'w' is created.
+
+    Fixed size is for when you know the size of the output file, so you set the size
+    of the df beforehand, saving precious IO operation. The input then becomes a tuple
+    of (True, DF_SIZE, INDEX), otherwise its false.
+    '''
+
+    # open file if exists, create group or overwrite it
+    h5f = h5py.File(path, 'a')
+    try:
+        if overwrite:
+            if group in h5f:
+                del h5f[group]
+
+        gr  = h5f.require_group(group)
+
+        def write(dataset     :  str,
+                  data        :  np.ndarray,
+                  fixed_size  :  Optional[Union[False, Tuple[True, int, int]]] = False):
+
+            if fixed_size is False:
+                # create dataset if doesnt exist, if does make larger
+                if dataset in gr:
+                    dset = gr[dataset]
+                    dset.resize((dset.shape[0] + 1, *dset.shape[1:]))
+                    dset[-1] = data
+                else:
+                    max_shape = (None,) + data.shape
+                    dset = gr.require_dataset(dataset, shape = (1,) + data.shape,
+                                              maxshape = max_shape, dtype = data.dtype,
+                                              chunks = True)
+                    dset[0] = data
+            else:
+                index = fixed_size[2]
+                # dataset of fixed size
+                if dataset in gr:
+                    dset = gr[dataset]
+                else:
+                    dset = gr.require_dataset(dataset, shape = (fixed_size[1],) + data.shape,
+                                              maxshape = fixed_size[1], dtype = data.dtype,
+                                              chunks = True)
+                dset[index] = data
+
+        yield write
+
+    finally:
+        h5f.close()
+
+def reader(path     :  str,
+           group    :  str,
+           dataset  :  str):
+    '''
+    Standard function that stupidly reads events iteratively from h5 file group.
+
+    Should be redone with this documentation in mind:
+    https://docs.h5py.org/en/stable/high/dataset.html#reading-writing-data
+    '''
+
+    with h5py.File(path, 'r') as h5f:
+        gr = h5f[group]
+        dset = gr[dataset]
+
+        for row in dset:
+            yield row

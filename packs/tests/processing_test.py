@@ -2,6 +2,7 @@ import os
 import sys
 
 import numpy as np
+
 import pandas as pd
 import subprocess
 
@@ -11,7 +12,7 @@ from pytest                        import mark
 from pytest                        import raises
 from pytest                        import warns
 
-from packs.proc.processing_utils   import read_defaults_WD2
+from packs.proc.processing_utils   import process_bin_WD1, process_event_lazy_WD1, read_defaults_WD2
 from packs.proc.processing_utils   import process_header
 from packs.proc.processing_utils   import read_binary
 from packs.proc.processing_utils   import format_wfs
@@ -22,8 +23,11 @@ from packs.types.types             import generate_wfdtype
 from packs.types.types             import rwf_type
 from packs.types.types             import event_info_type
 
+from packs.core.core_utils import MalformedHeaderError
+
 from packs.core.io                 import load_rwf_info
 from packs.core.io                 import load_evt_info
+from packs.core.io                 import reader
 
 from packs.types                   import types
 from hypothesis                    import given
@@ -171,8 +175,9 @@ def test_runtime_error_when_too_many_save_files():
     with raises(RuntimeError):
         check_save_path(relevant_dir + 'test_.txt', overwrite=False)
 
+
 @mark.parametrize("config, inpt, output, comparison", [("process_WD2_1channel.conf", "one_channel_WD2.bin", "one_channel_tmp.h5", "one_channel_WD2.h5"),
-                                           ("process_WD2_3channel.conf", "three_channels_WD2.bin", "three_channels_tmp.h5", "three_channels_WD2.h5")])
+                                                       ("process_WD2_3channel.conf", "three_channels_WD2.bin", "three_channels_tmp.h5", "three_channels_WD2.h5")])
 def test_decode_produces_expected_output(config, inpt, output, comparison):
 
     MULE_dir     = str(os.environ['MULE_DIR'])
@@ -202,4 +207,58 @@ def test_decode_produces_expected_output(config, inpt, output, comparison):
     # check that the resulting dataframe is as expected
     assert load_evt_info(save_path).equals(load_evt_info(comparison_path))
     assert load_rwf_info(save_path, samples).equals(load_rwf_info(comparison_path, samples))
+
+@mark.parametrize("config, inpt, output, comparison", [("process_WD1_1channel.conf", "one_channel_WD1.dat", "one_channel_WD1_tmp.h5", "one_channel_WD1.h5")])
+def test_WD1_decode_produces_expected_output(config, inpt, output, comparison):
+    '''
+    This test will be merged with test_decode_produces_expected_output()
+    once WD2 processing has been updated to match lazy method of WD1
+    '''
+
+    MULE_dir     = str(os.environ['MULE_DIR'])
+    data_dir     = "/packs/tests/data/"
+
+    # ensure path is correct
+    file_path       = MULE_dir + data_dir + inpt
+    save_path       = MULE_dir + data_dir + output
+    comparison_path = MULE_dir + data_dir + comparison
+    config_path     = MULE_dir + data_dir + "configs/" + config
+
+    # rewrite paths to files
+    cnfg = configparser.ConfigParser()
+    cnfg.read(config_path)
+    cnfg.set('required', 'file_path', "'" +  file_path + "'") # need to add comments around for config reasons
+    cnfg.set('required', 'save_path', "'" +  save_path + "'")
+
+    with open(config_path, 'w') as cfgfile:
+        cnfg.write(cfgfile)
+
+    # run processing pack decode
+    run_pack = ['python3', MULE_dir + "/bin/mule", "proc", config_path]
+    subprocess.run(run_pack)
+
+    # the event info can be read out like a normal h5, the RWF cannot due to how they're structured
+    assert pd.read_hdf(save_path, 'RAW/event_info').equals(pd.read_hdf(comparison_path, 'RAW/event_info'))
+    assert [x for x in reader(save_path, 'RAW', 'rwf')] == [x for x in reader(comparison_path, 'RAW', 'rwf')]
+
+def test_lazy_loading_malformed_data():
+    '''
+    Test that a file you pass through with no appropriate header is flagged if it's
+    not functioning correctly.
+
+    ATM the check for this is:
+    - event number goes up +1 events
+    - number of samples stays the same across two events
+    - timestamp increases between events
+    These may not always hold, but will ensure the test works as expected
+    '''
+
+    MULE_dir = str(os.environ['MULE_DIR'])
+    data_path = MULE_dir + "/packs/tests/data/malformed_data.bin"
+
+    with raises(MalformedHeaderError):
+        with open(data_path, 'rb') as file:
+            a = process_event_lazy_WD1(file, sample_size = 2)
+            next(a)
+            next(a)
 
