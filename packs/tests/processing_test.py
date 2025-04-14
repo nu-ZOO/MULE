@@ -36,14 +36,14 @@ def test_rwf_type_has_correct_shape(samples):
     assert x['rwf'].shape[0] == samples
 
 
-def test_header_components_read_as_expected(ch3wd2_dir):
+def test_header_components_read_as_expected(wd2_3ch_bin):
 
     evt_num   = 0
     tstamp    = 1998268
     smpls     = 1000
     smpl_prd  = 8
 
-    with open(ch3wd2_dir, 'rb') as f:
+    with open(wd2_3ch_bin, 'rb') as f:
         event_number, timestamp, samples, sampling_period = read_defaults_WD2(f, sys.byteorder)
 
     assert event_number        == evt_num
@@ -52,14 +52,14 @@ def test_header_components_read_as_expected(ch3wd2_dir):
     assert sampling_period     == smpl_prd
 
 
-def test_header_processed_correctly(ch3wd2_dir):
+def test_header_processed_correctly(wd2_3ch_bin):
 
     smpls     = 1000
     smpl_prd  = 8
     channels  = 3
     wdtype    = generate_wfdtype(channels, smpls) # 3 channels in this case
 
-    result = process_header(ch3wd2_dir)
+    result = process_header(wd2_3ch_bin)
 
     assert result[0] == wdtype
     assert result[1] == smpls
@@ -83,12 +83,12 @@ def test_header_works_when_data_malformed(data_dir):
 
 @mark.parametrize("function, error", [(process_header, NameError),
                                       (read_defaults_WD2, ValueError)])
-def test_endian_error_when_reading(function, error, ch3wd2_dir):
+def test_endian_error_when_reading(function, error, wd2_3ch_bin):
 
     byte_order = 'Big' # this will raise a ValueError
 
     with raises(error):
-        with open(ch3wd2_dir, 'rb') as f:
+        with open(wd2_3ch_bin, 'rb') as f:
             holder = function(f, byte_order)
 
 
@@ -103,7 +103,7 @@ def test_invalid_file_for_reading(data_dir):
     assert len(x) == 0
 
 
-def test_formatting_works(data_dir, ch3wd2_dir):
+def test_formatting_works(data_dir, wd2_3ch_bin):
 
     # collect relevant data from output
     check_file      = data_dir + 'three_channels_WD2.h5'
@@ -116,7 +116,7 @@ def test_formatting_works(data_dir, ch3wd2_dir):
 
     wdtype = types.generate_wfdtype(channels, samples)
 
-    with open(ch3wd2_dir, 'rb') as file:
+    with open(wd2_3ch_bin, 'rb') as file:
         # read in data
         data = read_binary(file, wdtype)
 
