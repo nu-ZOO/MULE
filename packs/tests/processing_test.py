@@ -1,4 +1,3 @@
-import os
 import sys
 
 import numpy as np
@@ -10,6 +9,7 @@ import configparser
 from pytest                        import mark
 from pytest                        import raises
 from pytest                        import warns
+from pytest                        import fixture
 
 from packs.proc.processing_utils   import read_defaults_WD2
 from packs.proc.processing_utils   import process_header
@@ -36,17 +36,14 @@ def test_rwf_type_has_correct_shape(samples):
     assert x['rwf'].shape[0] == samples
 
 
-def test_header_components_read_as_expected():
-
-    MULE_dir = str(os.environ['MULE_DIR'])
-    file = MULE_dir + '/packs/tests/data/three_channels_WD2.bin'
+def test_header_components_read_as_expected(ch3wd2_dir):
 
     evt_num   = 0
     tstamp    = 1998268
     smpls     = 1000
     smpl_prd  = 8
 
-    with open(file, 'rb') as f:
+    with open(ch3wd2_dir, 'rb') as f:
         event_number, timestamp, samples, sampling_period = read_defaults_WD2(f, sys.byteorder)
 
     assert event_number        == evt_num
@@ -55,24 +52,21 @@ def test_header_components_read_as_expected():
     assert sampling_period     == smpl_prd
 
 
-def test_header_processed_correctly():
-
-    MULE_dir = str(os.environ['MULE_DIR'])
-    file = MULE_dir + '/packs/tests/data/three_channels_WD2.bin'
+def test_header_processed_correctly(ch3wd2_dir):
 
     smpls     = 1000
     smpl_prd  = 8
     channels  = 3
     wdtype    = generate_wfdtype(channels, smpls) # 3 channels in this case
 
-    result = process_header(file)
+    result = process_header(ch3wd2_dir)
 
     assert result[0] == wdtype
     assert result[1] == smpls
     assert result[2] == smpl_prd
     assert result[3] == channels
 
-def test_header_works_when_data_malformed():
+def test_header_works_when_data_malformed(data_dir):
     # this test would normally cause a memory error as the data
     # provided is singular channel, and `process_header()` tests
     # for single channel behaviour by analysing it as multi-channel
@@ -82,32 +76,25 @@ def test_header_works_when_data_malformed():
     # This has been fixed quickly in process_header, but should be
     # optimised in a different fashion.
 
-    MULE_dir = str(os.environ['MULE_DIR'])
-    file = MULE_dir + '/packs/tests/data/malformed_data.bin'
+    file = data_dir + 'malformed_data.bin'
 
     with warns(UserWarning):
         process_header(file)
 
 @mark.parametrize("function, error", [(process_header, NameError),
                                       (read_defaults_WD2, ValueError)])
-def test_endian_error_when_reading(function, error):
-
-    MULE_dir = str(os.environ['MULE_DIR'])
-    file = MULE_dir + '/packs/tests/data/three_channels_WD2.bin'
-
+def test_endian_error_when_reading(function, error, ch3wd2_dir):
 
     byte_order = 'Big' # this will raise a ValueError
 
     with raises(error):
-        with open(file, 'rb') as f:
+        with open(ch3wd2_dir, 'rb') as f:
             holder = function(f, byte_order)
 
 
-def test_invalid_file_for_reading():
+def test_invalid_file_for_reading(data_dir):
 
-    MULE_dir = str(os.environ['MULE_DIR'])
-    file = MULE_dir + '/packs/tests/data/false_data.npy'
-
+    file = data_dir + 'false_data.npy'
 
     x = read_binary(file, types.generate_wfdtype(1, 1000))
 
@@ -116,14 +103,10 @@ def test_invalid_file_for_reading():
     assert len(x) == 0
 
 
-def test_formatting_works():
-
-    MULE_dir = str(os.environ['MULE_DIR'])
-
-    file_path  = MULE_dir + '/packs/tests/data/three_channels_WD2.bin'
+def test_formatting_works(data_dir, ch3wd2_dir):
 
     # collect relevant data from output
-    check_file      = MULE_dir + '/packs/tests/data/three_channels_WD2.h5'
+    check_file      = data_dir + 'three_channels_WD2.h5'
     check_rwf       = load_rwf_info(check_file, 1000)
     check_evt_info  = load_evt_info(check_file)
 
@@ -133,7 +116,7 @@ def test_formatting_works():
 
     wdtype = types.generate_wfdtype(channels, samples)
 
-    with open(file_path, 'rb') as file:
+    with open(ch3wd2_dir, 'rb') as file:
         # read in data
         data = read_binary(file, wdtype)
 
@@ -147,21 +130,19 @@ def test_formatting_works():
     assert evt_info.equals(check_evt_info)
 
 
-def test_ensure_new_path_created():
+def test_ensure_new_path_created(data_dir):
 
-    MULE_dir = str(os.environ['MULE_DIR'])
-    data_path     = MULE_dir + '/packs/tests/data/three_channels_WD2.h5'
-    new_data_path = MULE_dir + '/packs/tests/data/three_channels_WD21.h5'
+    data_path     = data_dir + 'three_channels_WD2.h5'
+    new_data_path = data_dir + 'three_channels_WD21.h5'
 
     found_path    = check_save_path(data_path, overwrite = False)
 
     assert found_path == new_data_path
 
 
-def test_runtime_error_when_too_many_save_files():
+def test_runtime_error_when_too_many_save_files(data_dir):
 
-    MULE_dir     = str(os.environ['MULE_DIR'])
-    relevant_dir = MULE_dir + '/packs/tests/data/repetitive_data/'
+    relevant_dir = data_dir + 'repetitive_data/'
     # generate 101 empty files
     with open(relevant_dir + f'test_.txt', 'w'):
             pass
@@ -173,16 +154,13 @@ def test_runtime_error_when_too_many_save_files():
 
 @mark.parametrize("config, inpt, output, comparison", [("process_WD2_1channel.conf", "one_channel_WD2.bin", "one_channel_tmp.h5", "one_channel_WD2.h5"),
                                            ("process_WD2_3channel.conf", "three_channels_WD2.bin", "three_channels_tmp.h5", "three_channels_WD2.h5")])
-def test_decode_produces_expected_output(config, inpt, output, comparison):
-
-    MULE_dir     = str(os.environ['MULE_DIR'])
-    data_dir     = "/packs/tests/data/"
+def test_decode_produces_expected_output(config, inpt, output, comparison, MULE_dir, data_dir):
 
     # ensure path is correct
-    file_path       = MULE_dir + data_dir + inpt
-    save_path       = MULE_dir + data_dir + output
-    comparison_path = MULE_dir + data_dir + comparison
-    config_path     = MULE_dir + data_dir + "configs/" + config
+    file_path       =  data_dir + inpt
+    save_path       =  data_dir + output
+    comparison_path =  data_dir + comparison
+    config_path     =  data_dir + "configs/" + config
 
     # collect samples from header
     _, samples, _, _ = process_header(file_path)
