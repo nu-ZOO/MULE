@@ -13,7 +13,7 @@ Less is known of "The Mule" than of any character of comparable signifigance to 
 
 #
 
-[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/release/python-360/)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/release/python-3120/)
 [![tests](https://github.com/nu-ZOO/MULE/actions/workflows/testsuite.yml/badge.svg)](https://github.com/nu-ZOO/MULE/actions)
 
 
