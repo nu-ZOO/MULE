@@ -1,3 +1,5 @@
+import os
+
 import pandas as pd
 
 import h5py
@@ -86,6 +88,10 @@ def read_config_file(file_path  :  str) -> dict:
     '''
     # setup config parser
     config = configparser.ConfigParser()
+
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(2, 'No such config file', file_path)
+        
 
     # read in arguments, require the required ones
     config.read(file_path)
