@@ -11,6 +11,7 @@ from pytest                        import raises
 from pytest                        import warns
 from pytest                        import fixture
 
+from packs.proc.processing_utils   import process_event_lazy_WD1
 from packs.proc.processing_utils   import read_defaults_WD2
 from packs.proc.processing_utils   import process_header
 from packs.proc.processing_utils   import read_binary
@@ -21,6 +22,8 @@ from packs.proc.processing_utils   import save_data
 from packs.types.types             import generate_wfdtype
 from packs.types.types             import rwf_type
 from packs.types.types             import event_info_type
+
+from packs.core.core_utils         import MalformedHeaderError
 
 from packs.core.io                 import load_rwf_info
 from packs.core.io                 import load_evt_info
@@ -181,3 +184,22 @@ def test_decode_produces_expected_output(config, inpt, output, comparison, MULE_
     assert load_evt_info(save_path).equals(load_evt_info(comparison_path))
     assert load_rwf_info(save_path, samples).equals(load_rwf_info(comparison_path, samples))
 
+
+def test_lazy_loading_malformed_data(MULE_dir):
+    '''
+    Test that a file you pass through with no appropriate header is flagged if it's
+    not functioning correctly.
+    ATM the check for this is:
+    - event number goes up +1 events
+    - number of samples stays the same across two events
+    - timestamp increases between events
+    These may not always hold, but will ensure the test works as expected
+    '''
+
+    data_path = MULE_dir + "/packs/tests/data/malformed_data.bin"
+
+    with raises(MalformedHeaderError):
+        with open(data_path, 'rb') as file:
+            a = process_event_lazy_WD1(file, sample_size = 2)
+            next(a)
+            next(a)
