@@ -14,6 +14,8 @@ from typing import Optional
 
 # imports start from MULE/
 from packs.core.core_utils import flatten
+from packs.core.core_utils import MalformedHeaderError
+from packs.core.io import writer
 from packs.types import types
 
 """
@@ -367,6 +369,55 @@ def check_save_path(save_path  :  str,
                 raise RuntimeError("Writing to file went over 100 loops to find a unique name. Sort out your files!")
 
     return save_path
+
+
+def process_event_lazy_WD1(file_object  :  BinaryIO,
+                           sample_size  :  int):
+
+    '''
+    WAVEDUMP 1: Generator that outputs each event iteratively from an opened binary file
+    Parameters
+    ----------
+        file_object  (obj)  :  Opened file object
+        sample_size  (int)  :  Time difference between each sample in waveform (2ns for V1730B digitiser)
+    Returns
+    -------
+        data  (generator)  :  Generator object containing one event's worth of data
+                              across each event
+    '''
+
+    # read first header
+    header = np.fromfile(file_object, dtype = 'i', count = 6)
+
+    # header to check against
+    sanity_header = header.copy()
+
+    # continue only if data exists
+    while len(header) > 0:
+
+        # alter header to match expected size
+        header[0] = header[0] - 24
+        event_size = header[0] // sample_size
+
+        # collect waveform, no of samples and timestamp
+        yield (np.fromfile(file_object, dtype = np.dtype('<H'), count = event_size), event_size, header[-1])
+
+        # collect next header
+        header = np.fromfile(file_object, dtype = 'i', count = 6)
+
+        # check if header has correct number of elements and correct information ONCE.
+        if sanity_header is not None:
+            if len(header) == 6:
+                if all([header[0] == sanity_header[0], # event size
+                    header[4] == sanity_header[4] + 1,  # event number +1
+                    header[5] > sanity_header[5]        # timestamp increases
+                    ]):
+                    sanity_header = None
+                else:
+                    raise MalformedHeaderError(sanity_header, header)
+            else:
+                raise MalformedHeaderError(sanity_header, header)
+    print("Processing Finished!")
 
 
 def process_bin_WD2(file_path  :  str,
