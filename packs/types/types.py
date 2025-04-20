@@ -31,6 +31,15 @@ def rwf_type(samples  :  int) -> np.dtype:
             ('rwf', np.float32, (samples,))
         ])
 
+def rwf_type_WD1(samples  :  int) -> np.dtype:
+    '''
+    WAVEDUMP 1: Generates the data-type for raw waveforms
+    '''
+
+    return np.dtype([('event_number', int),
+                     ('channels', int),
+                     ('rwf', np.uint16, (samples))])
+                    
 
 def generate_wfdtype(channels, samples):
     '''
