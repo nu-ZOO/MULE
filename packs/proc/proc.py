@@ -2,6 +2,7 @@ import os
 
 from packs.core.io                import read_config_file
 from packs.proc.processing_utils  import process_bin_WD2
+from packs.proc.processing_utils  import process_bin_WD1
 from packs.core.core_utils        import check_test
 
 def proc(config_file):
@@ -22,6 +23,8 @@ def proc(config_file):
         case 'decode':
             if conf_dict['wavedump_edition'] == 2:
                 process_bin_WD2(**arg_dict)
+            elif conf_dict['wavedump_edition'] == 1:
+                process_bin_WD1(**arg_dict)
             else:
                 raise RuntimeError(f"wavedump edition {conf_dict['wavedump_edition']} decoding isn't currently implemented.")
         case default:
