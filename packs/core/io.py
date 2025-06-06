@@ -74,6 +74,26 @@ def load_rwf_info(file_path  :  str,
     return pd.DataFrame(map(list, h5_data), columns = (types.rwf_type(samples)).names)
 
 
+def check_chunking(file):
+    '''
+    quantifies the chunking within the dataset for processing purposes
+    CHUNKING IS OBSOLETE AT THIS POINT DUE TO THE LAZY PROCESSING, 
+    THIS IS A BACKWARDS COMPATIBILITY MEASURE.
+    '''
+
+    with h5py.File(file, 'r') as h5f:
+        gr   = h5f['rwf']
+        keys = list(gr.keys())
+        l    = len(keys)
+
+    if l > 1:
+        return (True, keys, l)
+    else:
+        return (False, keys, l)
+    
+        
+
+
 def read_config_file(file_path  :  str) -> dict:
     '''
     Read config file passed in via 'mule' and extract relevant information for pack.
