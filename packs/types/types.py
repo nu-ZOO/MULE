@@ -1,12 +1,19 @@
 import numpy as np
 
 
-event_info_type = np.dtype([
+event_info_type       = np.dtype([
             ('event_number', np.uint32), 
             ('timestamp', np.uint64), 
             ('samples', np.uint32), 
             ('sampling_period', np.uint64), 
             ('channels', np.int32),
+            ])
+
+calibration_info_type = np.dtype([
+            ('event_number', np.uint32),
+            ('channels',     np.uint32),
+            ('integrated_Q',  np.float64),
+            ('height',       np.float64),
             ])
 
 def rwf_type(samples  :  int) -> np.dtype:
