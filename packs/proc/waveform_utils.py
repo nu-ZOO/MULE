@@ -18,7 +18,7 @@ from typing import Optional
 from typing import Union
 from typing import Tuple
 
-from packs.core.io import writer, reader
+from packs.core.io import writer, reader, check_chunking
 from packs.types import types
 
 """
@@ -92,12 +92,12 @@ def extract_peak(y_data) :
     return (np.max(y_data), np.argmax(y_data))
 
 
-def visualise_waveforms(file, cali_params, time):
+def visualise_waveforms(file, cali_params, time, key):
     '''
     Visualise waveforms and ask the user if the sidebands
     and integration window are acceptable.
     '''
-    for i, waveform in enumerate(reader(file, 'rwf', 'rwf_-1', 'r+')):
+    for i, waveform in enumerate(reader(file, 'rwf', key, 'r+')):
         plt.plot(time, waveform['rwf'], alpha = 0.2, zorder = 1)
         if i > 100: # ensures minimal plotting
             break
@@ -188,9 +188,14 @@ def calibrate(file_path     :  str,
         visualise     (bool)                    :  visualiser for the and signal extraction area
 
     '''
-    
+    # check if chunked for backwards compatibility
+    chunked, keys, l_keys = check_chunking(file_path)
+
     # extract relevant information from event info (assuming static)
-    scout                                    = reader(file_path, 'event_information', 'ei_-1')
+    if chunked:
+        scout                                    = reader(file_path, 'event_information', 'ei_0')
+    else:    
+        scout                                    = reader(file_path, 'event_information', 'ei_-1')
     _, _, samples, sampling_period, channels = next(scout)
     del scout
 
@@ -203,7 +208,7 @@ def calibrate(file_path     :  str,
 
     # visualise the first 100 waveforms to ensure the sidebands are correct
     if visualise:
-        visualise_waveforms(file_path, cali_params, time)
+        visualise_waveforms(file_path, cali_params, time, keys[0])
 
     # ensure correct file path output
     if save_path is None:
@@ -213,33 +218,34 @@ def calibrate(file_path     :  str,
 
     # process
     with writer(file, 'CALI', overwrite = True) as scribe:
-        for waveform in reader(file_path, 'rwf', 'rwf_-1', 'r+'):
+        for key in keys:
+            for waveform in reader(file_path, 'rwf', key, 'r+'):
 
-            evt_num  = waveform['event_number']
-            channels = waveform['channels']
-            wf       = waveform['rwf']
+                evt_num  = waveform['event_number']
+                channels = waveform['channels']
+                wf       = waveform['rwf']
 
-            # flip the waveform
-            if cali_params['negative']:
-                wf = -wf
+                # flip the waveform
+                if cali_params['negative']:
+                    wf = -wf
 
-            # baseline subtraction
-            if cali_params['baseline_sub'] is not None:
-                sideband_values = collect_sidebands(wf, time, cali_params)
-                wf = wf - subtract_baseline(sideband_values, sub_type = cali_params['baseline_sub'])
+                # baseline subtraction
+                if cali_params['baseline_sub'] is not None:
+                    sideband_values = collect_sidebands(wf, time, cali_params)
+                    wf = wf - subtract_baseline(sideband_values, sub_type = cali_params['baseline_sub'])
 
-            # extract height and its index
-            H_val, H_index = extract_peak(wf)
+                # extract height and its index
+                H_val, H_index = extract_peak(wf)
 
-            start_index, end_index = collect_integration_window(time, cali_params, H_index)
-            Q_val = integrate(wf[start_index:end_index])
+                start_index, end_index = collect_integration_window(time, cali_params, H_index)
+                Q_val = integrate(wf[start_index:end_index])
 
-            # write with correct format
-            info = np.array([(evt_num, channels, Q_val, H_val)], dtype = calibration_info_type)
-            swf  = np.array((evt_num, channels, wf), dtype = wf_dtype)
-            scribe('waveform_information', info)
-            scribe('subwf-1', swf)
-        
+                # write with correct format
+                info = np.array([(evt_num, channels, Q_val, H_val)], dtype = calibration_info_type)
+                swf  = np.array((evt_num, channels, wf), dtype = wf_dtype)
+                scribe('waveform_information', info)
+                scribe('subwf-1', swf)
+
 
 
 
