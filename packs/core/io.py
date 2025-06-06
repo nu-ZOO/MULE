@@ -169,16 +169,16 @@ def writer(path        :  str,
                                    This method is best seen in action in `process_bin_WD1()`.
             * Data should be in a numpy structured array format, as can be seen in WD1 and WD2 processing
             '''
-            if fixed_size is False:
+            if not fixed_size:
                 # create dataset if doesnt exist, if does make larger
                 if dataset in gr:
                     dset = gr[dataset]
-                    dset.resize((dset.shape[0] + 1, *dset.shape[1:]))
+                    dset.resize((dset.shape[0] + 1,))
                     dset[-1] = data
                 else:
                     max_shape = (None,) + data.shape
-                    dset = gr.require_dataset(dataset, shape = (1,) + data.shape,
-                                              maxshape = max_shape, dtype = data.dtype,
+                    dset = gr.require_dataset(dataset, shape = (1,),
+                                              maxshape = (None,), dtype = data.dtype,
                                               chunks = True)
                     dset[0] = data
             else:
@@ -198,24 +198,28 @@ def writer(path        :  str,
         h5f.close()
 
 
-def reader(path     :  str,
-           group    :  str,
-           dataset  :  str) -> Generator:
+def reader(path         :  str,
+           group        :  str,
+           dataset      :  str,
+           file_access  :  Optional[str] = 'r') -> Generator:
     '''
     A lazy h5 reader that will iteratively read from a dataset, with the formatting:
     
     FILE.H5 -> GROUP/DATASET
     Parameters
     ----------
-    path (str)       :  File path
-    group (str)      :  Group name within the h5 file
-    dataset (str)    :  Dataset name within the group
+    path (str)         :  File path
+    group (str)        :  Group name within the h5 file
+    dataset (str)      :  Dataset name within the group
+    file_access (str)  :  Defines what sort of access available to provided file.
+                          Useful for reading out events, processing them and then
+                          writing them back in with writer()
     Returns
     -------
     row (generator)  :  Generator object that returns the next row from the dataset upon being called.
     '''
 
-    with h5py.File(path, 'r') as h5f:
+    with h5py.File(path, file_access) as h5f:
         gr = h5f[group]
         dset = gr[dataset]
 
