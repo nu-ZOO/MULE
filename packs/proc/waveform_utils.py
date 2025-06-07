@@ -18,8 +18,10 @@ from typing import Optional
 from typing import Union
 from typing import Tuple
 
-from packs.core.io import writer, reader, check_chunking
+from packs.core.io import writer, reader, check_chunking, check_rows
 from packs.types import types
+
+from tqdm import tqdm
 
 """
 Waveform utilities
@@ -189,13 +191,18 @@ def calibrate(file_path     :  str,
 
     '''
     # check if chunked for backwards compatibility
-    chunked, keys, l_keys = check_chunking(file_path)
+    chunked, keys, l_keys, e_keys = check_chunking(file_path)
+
+    # check the number of rows for fixed_size calculations
+    num_rows = 0
+    if chunked:
+        for key in keys:
+            num_rows += check_rows(file_path, 'rwf', key)
+    else:
+        num_rows = check_rows(file_path, 'rwf', keys[0])
 
     # extract relevant information from event info (assuming static)
-    if chunked:
-        scout                                    = reader(file_path, 'event_information', 'ei_0')
-    else:    
-        scout                                    = reader(file_path, 'event_information', 'ei_-1')
+    scout                                    = reader(file_path, 'event_information', e_keys[0])
     _, _, samples, sampling_period, channels = next(scout)
     del scout
 
@@ -218,8 +225,8 @@ def calibrate(file_path     :  str,
 
     # process
     with writer(file, 'CALI', overwrite = True) as scribe:
-        for key in keys:
-            for waveform in reader(file_path, 'rwf', key, 'r+'):
+        for key in tqdm(keys):
+            for i, waveform in enumerate(reader(file_path, 'rwf', key, 'r+')):
 
                 evt_num  = waveform['event_number']
                 channels = waveform['channels']
@@ -243,9 +250,5 @@ def calibrate(file_path     :  str,
                 # write with correct format
                 info = np.array([(evt_num, channels, Q_val, H_val)], dtype = calibration_info_type)
                 swf  = np.array((evt_num, channels, wf), dtype = wf_dtype)
-                scribe('waveform_information', info)
-                scribe('subwf-1', swf)
-
-
-
-
+                scribe('waveform_information', info, (True, num_rows, i))
+                scribe('subwf-1', swf, (True, num_rows, i))

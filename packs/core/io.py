@@ -82,16 +82,26 @@ def check_chunking(file):
     '''
 
     with h5py.File(file, 'r') as h5f:
-        gr   = h5f['rwf']
-        keys = list(gr.keys())
-        l    = len(keys)
-
+        gr     = h5f['rwf']
+        e      = h5f['event_information']
+        keys   = list(gr.keys())
+        e_keys = list(e.keys())
+        l      = len(keys)
     if l > 1:
-        return (True, keys, l)
+        return (True, keys, l, e_keys)
     else:
-        return (False, keys, l)
+        return (False, keys, l, e_keys)
     
-        
+
+def check_rows(file_path, group, node):
+    '''
+    check the number of rows in the df
+    '''
+    with h5py.File(file_path, 'r') as f:
+        dset = f[f'{group}/{node}']
+        num_rows = dset.shape[0]
+    
+    return num_rows        
 
 
 def read_config_file(file_path  :  str) -> dict:
@@ -207,7 +217,7 @@ def writer(path        :  str,
                 if dataset in gr:
                     dset = gr[dataset]
                 else:
-                    dset = gr.require_dataset(dataset, shape = (fixed_size[1],) + data.shape,
+                    dset = gr.require_dataset(dataset, shape = (fixed_size[1],) + (),
                                               maxshape = fixed_size[1], dtype = data.dtype,
                                               chunks = True)
                 dset[index] = data
