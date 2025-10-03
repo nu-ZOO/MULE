@@ -20,64 +20,15 @@ from typing import Tuple
 
 from packs.core.io import writer, reader, check_chunking, check_rows
 from packs.types import types
+from packs.core.waveform_utils import collect_index, subtract_baseline
 
 from tqdm import tqdm
 
 """
-Waveform utilities
+Calibration utilities
 
 This file holds relevant functions for processing waveforms.
 """
-
-# relevant functions
-def subtract_baseline(y_data, sub_type = 'median'):
-    '''
-    determines the value that should be subtracted to produce baseline
-    '''
-
-    # MEAN METHOD
-    # add all ADC values and divide by length (rough), also remove negatives
-    match sub_type:
-        case 'mean':
-            total = (np.sum(y_data)/len(y_data))
-
-        case 'median':
-            total = np.median(y_data)
-
-        case _:
-            print("Please input a baseline method, exiting...")
-            total = 0
-
-    return total
-
-
-def find_nearest(array, value):
-    '''
-    Finds the array value closest to the provided value
-    '''
-    idx = np.searchsorted(array, value, side="left")
-    if idx > 0 and (idx == len(array) or m.fabs(value - array[idx-1]) < m.fabs(value - array[idx])):
-        return array[idx-1]
-    else:
-        return array[idx]
-
-
-def collect_index(time, value):
-    '''
-    Collects the array index corresponding to a certain time value
-
-    Args:
-        time        (np.array)        :     Time array
-        value       (float/int)       :     Value that you wish to locate the index of
-    '''
-    
-    val = find_nearest(time, value)
-    index = np.where(time == val)[0]
-
-    if len(index == 1):
-        return index[0]
-    else:
-        raise Exception("Index collection found more than one value with the same value entered.\nAre you sure you entered the right array?")
 
 
 def integrate(y_data):
