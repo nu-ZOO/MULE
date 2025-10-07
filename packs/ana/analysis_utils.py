@@ -1,12 +1,6 @@
-import h5py
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-from tqdm import tqdm
-import math as m
-import scipy.stats as stats
-import scipy.special as sc
-from scipy.optimize import curve_fit
 from packs.core.waveform_utils    import collect_index , subtract_baseline
 from packs.core import io
 
@@ -70,36 +64,34 @@ def suppress_baseline(wf_data, threshold):
 def cook_data(data, bin_size, window_args, chunk_size, chunk_number, negative=False, baseline_mode='median', verbose=1, peak_threshold=800
              ):
     '''
-    Collects the charge histograms from waveform arrays via simple processing
-    Spits out tuple containing BL-subtracted waveforms and charge of each signal.
+    Takes in data and outputs baseline subtracted, baseline suppressed, processed waveforms.
 
     Args:
         data          (np.array)      :       Waveform data
         bin_size      (float)         :       Size of time bins within data
-        window_args   (list)          :       List of window values for use in processing
+        window_args   (dict)          :       Dictionary of window values for use in processing
         chunk_size    (int)           :       Size of the 'chunk' of waveform used to ease processing
         chunk_number  (int)           :       Number passed through to track iterations, acts as a label for the chunk
         negative      (bool)          :       Is the waveform negative?
         baseline_mode (string)        :       Mode of the baseline subtraction (median, mode, mean, etc.)
         verbose       (int)           :       Print info: 0 is nothing, 1 is barebones, 2 includes plots
-        peak_threshold (float)       :        Threshold for removing peaks
+        peak_threshold (float)        :        Threshold for removing peaks
 
     Returns:
         results(
-            sub_data   (array)         :       Baseline subtracted waveforms
+            sub_data   (array)        :       Baseline subtracted waveforms
         )
     '''
         
-    event_number = i + chunk_size * chunk_number
     # Make zero values equal to 1
     threshold = 0
     # Unpack window arguments
-    WINDOW_START     = window_args[0]
-    WINDOW_END       = window_args[1]
-    BASELINE_POINT_1 = window_args[2]
-    BASELINE_POINT_2 = window_args[3]
-    BASELINE_RANGE_1 = window_args[4]  
-    BASELINE_RANGE_2 = window_args[5]  
+    WINDOW_START     = window_args['WINDOW_START']
+    WINDOW_END       = window_args['WINDOW_END']
+    BASELINE_POINT_1 = window_args['BASELINE_POINT_1']
+    BASELINE_POINT_2 = window_args['BASELINE_POINT_2']
+    BASELINE_RANGE_1 = window_args['BASELINE_RANGE_1']
+    BASELINE_RANGE_2 = window_args['BASELINE_RANGE_2']
 
     # Define the time array
     time = np.linspace(0, len(data[0]), num=len(data[0]), dtype=int) * bin_size
