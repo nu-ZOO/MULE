@@ -1,3 +1,16 @@
+import numpy as np
+import pandas as pd
+import os
+from tqdm import tqdm
+import csv
+import re
+
+"""
+Processing utilities for the Lecroy oscilloscope
+
+This file holds all the relevant functions for the processing of data from csv files to h5.
+"""
+
 def parse_lecroy_segmented(lines):
     # Line 1 has to have: Segments,1000,SegmentSize,5002
     segments = int(lines[1][1])
