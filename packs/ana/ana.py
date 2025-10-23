@@ -4,7 +4,7 @@ from packs.core.io import read_config_file
 from packs.ana.analysis_utils import average_waveforms
 from packs.core.core_utils import check_test
 
-def ana(config_file):
+def ana(config_file : str) -> (np.narray):
     # checks if test, if so ends run
     if check_test(config_file):
         return
