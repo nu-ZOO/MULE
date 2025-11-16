@@ -12,9 +12,10 @@ def setup_logging(log_dir = None, log_name = None) -> None:
     Setup the logging configuration.
     Taken wholeheartedly from CARP
     '''
-    # set log_dir if None
+    # set and create log_dir if None
     if log_dir is None:
         log_dir = f'{os.environ['MULE_DIR']}/logs'
+    os.makedirs(log_dir, exist_ok=True)
 
     # create unique log file name based on current date and time, or provided name
     if log_name is None:
