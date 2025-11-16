@@ -7,14 +7,17 @@ import traceback
 from importlib import import_module
 import argparse
 
+# create MULE_DIR path
 try:
     MULE_DIR = str(os.environ['MULE_DIR'])
 except Exception as e:
     print("Couldn't source MULE directory")
     print(e)    
 
-# create MULE_DIR path
 sys.path.append(os.path.expanduser(MULE_DIR))
+
+from packs.core.logging import setup_logging
+
 
 '''
 argument list:
@@ -37,8 +40,9 @@ parser.add_argument("config", help = 'The config file provided to the pack, this
 
 args = parser.parse_args()
 
-# import pack and run
+# start logging, import pack and run
 try:
+    setup_logging()
     module_name = f'packs.{args.pack}.{args.pack}'
     pack = getattr(import_module(module_name), args.pack)
 except ModuleNotFoundError:
