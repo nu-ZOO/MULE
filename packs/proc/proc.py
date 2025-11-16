@@ -1,11 +1,13 @@
 import os
+import logging
+
 
 from packs.core.io                import read_config_file
 from packs.proc.processing_utils  import process_bin_WD2
 from packs.core.core_utils        import check_test
 
 def proc(config_file):
-    print("Starting the processing pack...")
+    logging.info("Starting the processing pack...")
 
     # checks if test, if so ends run
     if check_test(config_file):
