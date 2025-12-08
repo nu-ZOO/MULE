@@ -30,9 +30,11 @@ This file holds relevant functions for processing waveforms.
 """
 
 
-def subtract_baseline(y_data, sub_type = 'median'):
+def subtract_baseline(y_data : np.ndarray,
+                       sub_type : Optional[str] = 'median') -> (float):
     '''
-    determines the value that should be subtracted to produce baseline
+    determines the value that should be subtracted to produce baseline using the mean
+    or median of a defined window of the waveform data
     '''
 
     # MEAN METHOD
@@ -50,7 +52,8 @@ def subtract_baseline(y_data, sub_type = 'median'):
 
     return total
 
-def find_nearest(array, value):
+def find_nearest(array : np.ndarray,
+                 value : float) -> (float):
     '''
     Finds the array value closest to the provided value
     '''
@@ -60,7 +63,8 @@ def find_nearest(array, value):
     else:
         return array[idx]
 
-def collect_index(time, value):
+def collect_index(time : np.ndarray,
+                  value : float) -> (int):
     '''
     Collects the array index corresponding to a certain time value
 

@@ -11,13 +11,12 @@ Analysis utilities
 This file holds all the relevant functions for analysing data from h5 files.
 """
 
-def remove_secondaries(wf_data : np.narray,
+def remove_secondaries(wf_data : np.ndarray,
                         threshold : int,
-                        time : np.narray,
+                        time : np.ndarray,
                         event_number : int, 
                         verbose: int, 
-                        WINDOW_END: int, 
-                        bin_size: int) -> (np.narray):
+                        WINDOW_END: int) -> (np.ndarray):
     '''
     Removes events with large secondary peaks.
     Any waveforms with peaks after the first signal (defined by WINDOW_END) that are larger than the threshold are identified and removed.
@@ -36,27 +35,30 @@ def remove_secondaries(wf_data : np.narray,
     wf_data (array)                 :                   none rejected waveform
     '''
     after_window_wf = wf_data[collect_index(time, WINDOW_END) : len(wf_data)-1] # Making an array of the data afrter WINDOW_END so we can look for peaks there
-    
-    second_peak = np.max(after_window_wf)
-    if second_peak > threshold:
-        if verbose > 1: 
-            plt.plot(time, wf_data)
-            plt.xlabel('Time (ns)')
-            plt.ylabel('ADCs')
-            plt.yscale('log')
-            plt.axhline(second_peak, 0, 2e5, c = 'r', ls = '--')
-            plt.axvline(WINDOW_END, c = 'r', ls = '--')
-            plt.title(f'Event {event_number} subtracted waveform')
-            plt.show()
+    if after_window_wf is not None:   
+        second_peak = np.max(after_window_wf)
+        if second_peak > threshold:
+            if verbose > 1: 
+                plt.plot(time, wf_data)
+                plt.xlabel('Time (ns)')
+                plt.ylabel('ADCs')
+                plt.yscale('log')
+                plt.axhline(second_peak, 0, 2e5, c = 'r', ls = '--')
+                plt.axvline(WINDOW_END, c = 'r', ls = '--')
+                plt.title(f'Event {event_number} subtracted waveform')
+                plt.show()
             if verbose > 0:
                 print(f'Event {event_number} excluded due to large secondary peak')
-        return None
+            return None
+        else:
+            return wf_data
     else:
+        print(f'Window_End input {WINDOW_END} is outside of waveform range')
         return wf_data
     
 
-def suppress_baseline(wf_data : np.narray,
-                        threshold : int) -> (np.narray):
+def suppress_baseline(wf_data : np.ndarray,
+                        threshold : int) -> (np.ndarray):
     '''
     Supresses baseline values, anything below the threshold (including negatives from undershoot) gets set to zero
 
@@ -70,7 +72,7 @@ def suppress_baseline(wf_data : np.narray,
     wf_data[wf_data < threshold] = 0
     return wf_data
 
-def cook_data(data : np.narray,
+def cook_data(data : np.ndarray,
                 bin_size : int,
                 window_args : dict,
                 chunk_size : int,
@@ -79,12 +81,12 @@ def cook_data(data : np.narray,
                 baseline_mode : Optional[str] = 'median',
                 verbose : Optional[int] = 1,
                 peak_threshold : Optional[int] = 1000,
-                suppression_threshold : Optional[int] = 10) -> (np.narray):
+                suppression_threshold : Optional[int] = 10) -> (np.ndarray):
     '''
     Takes in waveform data and outputs baseline subtracted, baseline suppressed, processed waveforms.
 
     Args:
-        data          (np.array)      :       Waveform data
+        data          (array)      :       Waveform data
         bin_size      (int)         :       Size of time bins within data
         window_args   (dict)          :       Dictionary of window values for use in processing
         chunk_size    (int)           :       Size of the 'chunk' of waveform used to ease processing
@@ -111,7 +113,7 @@ def cook_data(data : np.narray,
     # Define the time array
     time = np.linspace(0, len(data[0]), num=len(data[0]), dtype=int) * bin_size
 
-    sub_data = []
+    wf_data = [] # Empty array for the waveform data to be put in
     
     for i, wf in enumerate(data):  # Process each waveform
         event_number = i + chunk_size * chunk_number
@@ -136,10 +138,10 @@ def cook_data(data : np.narray,
         if final_wf is None:
             continue
             
-        sub_data.append(final_wf)
+        wf_data.append(final_wf)
 
     # Return subtracted waveforms
-    return sub_data
+    return wf_data
 
 def average_waveforms(files : list,
                        bin_size : int,
@@ -149,7 +151,7 @@ def average_waveforms(files : list,
                        baseline_mode: Optional[str] = 'median', 
                        verbose : Optional[int] = 1, 
                        peak_threshold: Optional[int] = 1000,
-                       suppression_threshold: Optional[int] = 10) -> (np.narray):
+                       suppression_threshold: Optional[int] = 10) -> (np.ndarray):
     '''
     Averages waveforms. Takes in multiple h5 files, splits the data into chunks for processing ease and analyses them. The chunks are passed into cook_data,
       which flips polarity, subtracts baseline, removes events with large secondary peaks and supresses baseline. This function then averages this data to form a single
