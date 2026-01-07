@@ -70,7 +70,7 @@ def collect_index(time, value):
         time        (np.array)        :     Time array
         value       (float/int)       :     Value that you wish to locate the index of
     '''
-    
+
     val = find_nearest(time, value)
     index = np.where(time == val)[0]
 
@@ -85,7 +85,7 @@ def integrate(y_data):
     Collect the integral across an event by summing y components
     '''
     return np.sum(y_data)
-    
+
 
 def extract_peak(y_data) :
     '''
@@ -111,7 +111,7 @@ def visualise_waveforms(file, cali_params, time, key):
 
     plt.legend()
     plt.xlabel('Time (ns)')
-    plt.ylabel('Waveform signal (ADC)') 
+    plt.ylabel('Waveform signal (ADC)')
     plt.show()
     # ask if the user is happy with these bands?
     response = input("Are the bands acceptable? [y/n]: ").strip().lower()
@@ -146,9 +146,9 @@ def collect_integration_window(time, cali_params, H_index):
             end_index = collect_index(time, time[H_index] + cali_params['window'][1])
         case _:
             raise ValueError(f'{cali_params['method']} is not a valid integration method.')
-    
+
     return (start_index, end_index)
-        
+
 
 
 def calibrate(file_path     :  str,
@@ -175,14 +175,14 @@ def calibrate(file_path     :  str,
                                                         method  (str)              :  method of calibration:
                                                             manual - set a window and calibrate around it
                                                             height - set integration window based on highest peak
-                                                                     (NOT IMPLEMENTED) 
+                                                                     (NOT IMPLEMENTED)
                                                         window  (int, int)         :  window to integrate over if required (ns)
                                                                                       For height method, this is the distance
                                                                                       +- around the peak.
                                                         baseline_sub (str)         :  baseline subtraction flag and the method implemented:
                                                             median
                                                             mean
-                                                        sidebands    ((int, int), 
+                                                        sidebands    ((int, int),
                                                                       (int, int))  :  windows to extract a baseline over (ns)
                                                         negative     (bool)        :  glag for flipping the waveform
         save_path     (str)                     :  Path to save to if desired
@@ -211,7 +211,7 @@ def calibrate(file_path     :  str,
 
     print(f'file: {file_path}\nsamples: {samples}\nsampling_period: {sampling_period}\nchannels: {channels}')
 
-    time = np.linspace(0,samples * sampling_period, num = samples) 
+    time = np.linspace(0,samples * sampling_period, num = samples)
 
     # visualise the first 100 waveforms to ensure the sidebands are correct
     if visualise:
@@ -223,10 +223,11 @@ def calibrate(file_path     :  str,
     else:
         file = save_path
 
-    # process
+    # keep a track of the indices as you process the data
+    index_tracker = 0
     with writer(file, 'CALI', overwrite = True) as scribe:
         for key in tqdm(keys):
-            for i, waveform in enumerate(reader(file_path, 'rwf', key, 'r+')):
+            for waveform in reader(file_path, 'rwf', key, 'r+'):
 
                 evt_num  = waveform['event_number']
                 channels = waveform['channels']
@@ -250,5 +251,6 @@ def calibrate(file_path     :  str,
                 # write with correct format
                 info = np.array([(evt_num, channels, Q_val, H_val)], dtype = calibration_info_type)
                 swf  = np.array((evt_num, channels, wf), dtype = wf_dtype)
-                scribe('waveform_information', info, (True, num_rows, i))
-                scribe('subwf-1', swf, (True, num_rows, i))
+                scribe('waveform_information', info, (True, num_rows, index_track))
+                scribe('subwf-1', swf, (True, num_rows, index_tracker))
+                index_tracker += 1
