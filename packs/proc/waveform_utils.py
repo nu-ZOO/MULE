@@ -251,6 +251,6 @@ def calibrate(file_path     :  str,
                 # write with correct format
                 info = np.array([(evt_num, channels, Q_val, H_val)], dtype = calibration_info_type)
                 swf  = np.array((evt_num, channels, wf), dtype = wf_dtype)
-                scribe('waveform_information', info, (True, num_rows, index_track))
+                scribe('waveform_information', info, (True, num_rows, index_tracker))
                 scribe('subwf-1', swf, (True, num_rows, index_tracker))
                 index_tracker += 1
