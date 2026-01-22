@@ -59,7 +59,8 @@ def test_reader_writer(tmp_path):
 
 def test_writer_overwriting(tmp_path, data_dir):
     '''
-    this will write random data over the prior file and check
+    Testing the 'overwrite' flag works when true,
+    this test writes random data over the prior file and check
     that the reader reads out exactly the same input, with no extra information
     '''
 
@@ -101,14 +102,14 @@ def test_writer_overwriting(tmp_path, data_dir):
     # ensure that these two lists arent identical
     assert not np.array_equal(np.array(output_data), np.array(initial_data))
     # sanity check that the output is what you expect it is
-    for i, sample in enumerate(output_data):
-        assert sample == overwrite_data[i]
+    assert np.array_equal(np.array(output_data), np.array(overwrite_data))
 
 
 def test_writer_not_overwriting(tmp_path, data_dir):
     '''
-    vice versa, will write random data to the end of the prior file
-    and check that the reader reads out both new and old data
+    Testing 'overwrite' flag when false,
+    this test writes random data to the end of the prior file
+    and checks that the reader reads out both new and old data
     '''
     file = f'{tmp_path}/overwriter_test_2.h5'
     # generate junk data
