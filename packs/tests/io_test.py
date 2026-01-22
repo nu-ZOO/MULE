@@ -211,3 +211,35 @@ def test_writer_fixed_size_provided_incorrectly(tmp_path):
                 scribe('rwf', data, (True, len(test_data)-1, i))
 
 
+@mark.parametrize('over_input', (True, False))
+def test_writer_check_group_exists_no_overwrite(tmp_path, over_input):
+    '''
+    generate an empty h5 file, and check that the
+    writer creates the groups as expected
+    '''
+    # generate empty file
+    file = f'{tmp_path}/empty_file_tester.h5'
+    with open(file, 'w') as f:
+    	pass
+
+    test_dtype = np.dtype([
+                    ('int', int),
+                    ('float', float),
+                    ('bool', bool),
+                    ('bigfloat', float),
+                    ])
+
+    test_data       = [np.array((0, 1.0, False, 25000.323232), dtype = test_dtype),
+                       np.array((1, 4.0, True, 23456789.321), dtype = test_dtype)]
+
+    # generate the groups as expected
+    with writer(file, 'RAW', overwrite = over_input) as scribe:
+        for data in test_data:
+            scribe('rwf', data)
+
+
+    # check output
+    for data_in, data_out in zip(test_data, reader(file, 'RAW', 'rwf')):
+        assert data_in == data_out
+
+
