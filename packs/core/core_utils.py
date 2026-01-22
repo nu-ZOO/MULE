@@ -1,3 +1,5 @@
+import logging
+
 def flatten(xss):
     '''
     Flattens a 2D list
@@ -8,7 +10,7 @@ def flatten(xss):
 def check_test(file):
     # quick check for test config
     if file == "test_config":
-        print("Test config executable run successfully")
+        logging.info("Test config executable run successfully")
         return True
     else:
         return False

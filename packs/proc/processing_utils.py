@@ -5,6 +5,7 @@ import numpy  as np
 import tables as tb
 import pandas as pd
 import warnings
+import logging
 
 import h5py
 
@@ -66,7 +67,7 @@ def raw_to_h5_WD1(PATH, save_h5 = False, verbose = False, print_mod = 0):
     file = open(PATH, 'rb')
     data = []
 
-    print("File open! Processing...")
+    logging.info("File open! Processing...")
     # Collect data, while true loops are always dangerous but lets ignore that here :)
     while (True):
 
@@ -75,18 +76,18 @@ def raw_to_h5_WD1(PATH, save_h5 = False, verbose = False, print_mod = 0):
 
         # breaking condition
         if len(array) == 0:
-            print("Processing finished! Saving...")
+            logging.info("Processing finished! Saving...")
             break
 
         # printing events
         if (array[4] % int(print_mod) == 0):
-            print("Event {}".format(array[4]))
+            logging.info("Event {}".format(array[4]))
 
         # verbose check
         if (verbose == True):
             array_tag = ['event size (ns)', 'board ID', 'pattern', 'board channel', 'event counter', 'trigger tag']
             for i in range(len(array)):
-                print("{}: {}".format(array_tag[i], array[i]))
+                logging.info("{}: {}".format(array_tag[i], array[i]))
 
 
 
@@ -100,7 +101,7 @@ def raw_to_h5_WD1(PATH, save_h5 = False, verbose = False, print_mod = 0):
         data.append(np.fromfile(file, dtype=int16bit, count=event_size))
 
     if (save_h5 == True):
-        print("Saving raw waveforms...")
+        logging.info("Saving raw waveforms...")
         # change path to dump the h5 file where
         # the .dat file is
         directory = PATH[:-3] + "h5"
@@ -208,9 +209,9 @@ def process_header(file_path  :  str,
 
     # check that event header is as expected
     if (event_number_1 -1 == event_number) and (samples_1 == samples) and sampling_period_1 == (sampling_period):
-        print(f"{channels} channels detected. Processing accordingly...")
+        logging.info(f"{channels} channels detected. Processing accordingly...")
     else:
-        print(f"Single channel detected. If you're expecting more channels, something has gone wrong.\nProcessing accordingly...")
+        logging.info(f"Single channel detected. If you're expecting more channels, something has gone wrong.\nProcessing accordingly...")
         channels = 1
 
     file.close()
@@ -395,7 +396,7 @@ def process_bin_WD2(file_path  :  str,
 
     # Ensure save path is clear
     save_path = check_save_path(save_path, overwrite)
-    print(f'\nData input   :  {file_path}\nData output  :  {save_path}')
+    logging.info(f'\nData input   :  {file_path}\nData output  :  {save_path}')
 
     # collect binary information
     wdtype, samples, sampling_period, channels = process_header(file_path)
@@ -408,7 +409,7 @@ def process_bin_WD2(file_path  :  str,
 
     # Process data chunked or unchunked
     if counts == -1:
-        print("No chunking selected...")
+        logging.info("No chunking selected...")
         # read in data
         with open(file_path, 'rb') as file:
             data = read_binary(file, wdtype)
@@ -419,7 +420,7 @@ def process_bin_WD2(file_path  :  str,
         # save data
         save_data(event_info, rwf, save_path)
     else:
-        print(f"Chunking by {counts}...")
+        logging.info(f"Chunking by {counts}...")
         # collect data into dataframes based on desired splitting
         counter = 0
         while True:
@@ -431,7 +432,7 @@ def process_bin_WD2(file_path  :  str,
 
                 # check binary has content in it
                 if len(data) == 0:
-                    print("Processing Finished!")
+                    logging.info("Processing Finished!")
                     return True
 
                 # format_data
