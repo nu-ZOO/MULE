@@ -1,7 +1,7 @@
 import os
 
 import pandas as pd
-import numpy as np
+import numpy  as np
 
 import h5py
 import ast
@@ -98,7 +98,7 @@ def read_config_file(file_path  :  str) -> dict:
 
     if not os.path.exists(file_path):
         raise FileNotFoundError(2, 'No such config file', file_path)
-        
+
 
     # read in arguments, require the required ones
     config.read(file_path)
@@ -127,12 +127,12 @@ def writer(path        :  str,
     path (str)       :  File path
     group (str)      :  Group within the h5 file
     overwrite(bool)  :  Boolean for overwriting previous dataset (OPTIONAL)
-    
+
     Returns
     -------
     write (func)     : write function described in write()
-    
-    
+
+
     Fixed size is for when you know the size of the output file, so you set the size
     of the df beforehand, saving precious IO operation. The input then becomes a tuple
     of (True, DF_SIZE, INDEX), otherwise its false.
@@ -153,10 +153,10 @@ def writer(path        :  str,
                   fixed_size  :  Optional[Union[False, Tuple[True, int, int]]] = False) -> None:
             '''
             Writes ndarray to dataset within group defined in writer().
-            Fixed size used to speed up writing, if True will 
-            create a dataset of a fixed size rather than 
+            Fixed size used to speed up writing, if True will
+            create a dataset of a fixed size rather than
             increasing the size iteratively.
-            
+
             Parameters
             ----------
             dataset (str)       :  Dataset name to write to
@@ -164,7 +164,7 @@ def writer(path        :  str,
             fixed_size (Union[Bool, Tuple[Bool, int, int]])
                                 :  Method that's either enable or disabled.
                                      False (disabled) -> Iteratively increases size of dataframe at runtime
-                                     True  (enabled)  -> Requires Tuple containing 
+                                     True  (enabled)  -> Requires Tuple containing
                                                             (True, number of events, index to write to)
                                    This method is best seen in action in `process_bin_WD1()`.
             * Data should be in a numpy structured array format, as can be seen in WD1 and WD2 processing
@@ -203,7 +203,7 @@ def reader(path     :  str,
            dataset  :  str) -> Generator:
     '''
     A lazy h5 reader that will iteratively read from a dataset, with the formatting:
-    
+
     FILE.H5 -> GROUP/DATASET
     Parameters
     ----------
