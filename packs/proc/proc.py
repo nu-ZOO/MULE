@@ -34,6 +34,11 @@ def proc(config_file):
             case default:
                 raise RuntimeError(f"process {conf_dict['process']} not currently implemented.")
     except KeyError as e:
-        print(f"\nError in the configuration file: missing required key {e} \n")
+        print(f"\nError in the configuration file, incorrect or missing argument: {e} \n")
+        traceback.print_exc()
+        sys.exit(2)
+    except TypeError as e:
+        key = str(e).split("'")[1]
+        print(f"\nError in the configuration file, unexpected argument: '{key}' \n")
         traceback.print_exc()
         sys.exit(2)
