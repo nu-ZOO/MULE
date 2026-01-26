@@ -219,7 +219,7 @@ def test_WD1_decode_produces_expected_output(config, inpt, output, comparison, M
     assert [x for x in reader(save_path, 'RAW', 'rwf')] == [x for x in reader(comparison_path, 'RAW', 'rwf')]
 
 
-def test_lazy_loading_malformed_data(MULE_dir):
+def test_lazy_loading_malformed_data_WD1(MULE_dir):
     '''
     Test that a file you pass through with no appropriate header is flagged if it's
     not functioning correctly.
@@ -237,3 +237,14 @@ def test_lazy_loading_malformed_data(MULE_dir):
             a = process_event_lazy_WD1(file, sample_size = 2)
             next(a)
             next(a)
+
+def test_lazy_loading_short_header_WD1(MULE_dir):
+    '''
+    Test a file that contains only 4 components in its header,
+    should return a MalformedHeaderError
+    '''
+
+    data_path = MULE_dir + "/packs/tests/data/malformed_short_header.bin"
+    with open(data_path, 'rb') as file:
+        a = process_event_lazy_WD1(file, sample_size = 2)
+        next(a)
