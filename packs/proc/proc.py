@@ -39,6 +39,6 @@ def proc(config_file):
         sys.exit(2)
     except TypeError as e:
         key = str(e).split("'")[1]
-        print(f"\nError in the configuration file, unexpected argument: '{key}' \n")
+        print(f"\nError in the configuration file, incorrect or missing argument: '{key}' \n")
         traceback.print_exc()
         sys.exit(2)
