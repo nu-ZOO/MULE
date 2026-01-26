@@ -189,7 +189,7 @@ def test_decode_produces_expected_output(config, inpt, output, comparison, MULE_
 
 
 @mark.parametrize("config, inpt, output, comparison", [("process_WD1_1channel.conf", "one_channel_WD1.dat", "one_channel_WD1_tmp.h5", "one_channel_WD1.h5")])
-def test_WD1_decode_produces_expected_output(config, inpt, output, comparison, MULE_dir, data_dir):
+def test_WD1_decode_produces_expected_output(config, inpt, output, comparison, MULE_dir, data_dir, tmp_path):
     '''
     This test will be merged with test_decode_produces_expected_output()
     once WD2 processing has been updated to match lazy method of WD1
@@ -197,7 +197,7 @@ def test_WD1_decode_produces_expected_output(config, inpt, output, comparison, M
 
     # ensure path is correct
     file_path       = data_dir + inpt
-    save_path       = data_dir + output
+    save_path       = tmp_path / output # PosixPaths behave differently
     comparison_path = data_dir + comparison
     config_path     = data_dir + "configs/" + config
 
@@ -205,7 +205,7 @@ def test_WD1_decode_produces_expected_output(config, inpt, output, comparison, M
     cnfg = configparser.ConfigParser()
     cnfg.read(config_path)
     cnfg.set('required', 'file_path', "'" +  file_path + "'") # need to add comments around for config reasons
-    cnfg.set('required', 'save_path', "'" +  save_path + "'")
+    cnfg.set('required', 'save_path', f"'{save_path}'") # PosixPaths behave differently
 
     with open(config_path, 'w') as cfgfile:
         cnfg.write(cfgfile)
