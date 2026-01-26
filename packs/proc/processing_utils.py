@@ -15,8 +15,8 @@ from typing import Optional
 # imports start from MULE/
 from packs.core.core_utils import flatten
 from packs.core.core_utils import MalformedHeaderError
-from packs.core.io import writer
-from packs.types import types
+from packs.core.io         import writer
+from packs.types           import types
 
 """
 Processing utilities
@@ -471,11 +471,11 @@ def process_bin_WD1(file_path    :  str,
                     print(f"Event {i}")
 
                 # enforce stucture upon data
-                e_dtype = types.event_info_type
+                e_dtype  = types.event_info_type
                 wf_dtype = types.rwf_type_WD1(samples)
 
                 event_info = np.array((i, timestamp, samples, sample_size, 1), dtype = e_dtype)
-                waveforms = np.array((i, 0, waveform), dtype = wf_dtype)
+                waveforms  = np.array((i, 0, waveform), dtype = wf_dtype)
 
                 # first run-through, collect the header information to extract table size
                 if i == 0:

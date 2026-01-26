@@ -17,7 +17,7 @@ def check_test(file):
 # THIS SHOULD BE MOVED ELSEWHERE
 class MalformedHeaderError(Exception):
     '''
-    Header created for when two headers don't match up consecutively.
+    Exception created for when two headers don't match up consecutively.
     Created initially for WD1 processing, but should be back-ported for WD2
     '''
 
