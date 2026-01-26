@@ -446,7 +446,7 @@ def process_bin_WD1(file_path    :  str,
         save_path    (str)   :  Path to saved file
         sample_size  (int)   :  Size of each sample in an event (2 ns in the case of V1730B digitiser)
         overwrite    (bool)  :  Boolean for overwriting pre-existing files
-        counts       (int)   :  The number of events per chunks. -1 implies no chunking of data.
+        print_mod    (int)   :  Readout frequency for number of events, -1 implies no readout
     Returns
     -------
         None
