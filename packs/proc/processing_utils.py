@@ -345,8 +345,8 @@ def save_data(event_information  :  np.ndarray,
 def check_save_path(save_path  :  str,
                     overwrite  :  bool):
     '''
-    Checks that the save_path is valid/doesn't already exist and if it does, other `overwrite` it
-    or create an additional file with a number added.
+    Checks that the save_path exists. Checks if it is valid/doesn't already exist
+    and if it does, other `overwrite` it or create an additional file with a number added.
 
     Parameters
     ----------
@@ -360,6 +360,8 @@ def check_save_path(save_path  :  str,
                              where N is number of loops it had to do before finding a valid N
 
     '''
+    if not os.path.exists(os.path.dirname(save_path)):
+        raise FileNotFoundError(2, 'Save path not found', os.path.dirname(save_path))
 
     name, ext = os.path.splitext(save_path)
     counter = 1
