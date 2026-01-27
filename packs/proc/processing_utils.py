@@ -192,12 +192,9 @@ def process_header(file_path  :  str,
         raise NameError(f'Invalid byte order provided: {byte_order}. Please provide the correct byte order for your machine.')
 
     # open file
-    try: 
-        file = open(file_path, 'rb')
-    except FileNotFoundError as e:
-        print(f"\nError, path or file not found: '{e.filename}' \n")
-        traceback.print_exc()
-        sys.exit(2)
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(2, 'Path or file not found', file_path)    
+    file = open(file_path, 'rb')
 
     event_number, timestamp, samples, sampling_period = read_defaults_WD2(file, byte_order)
     # attempt to read channels
