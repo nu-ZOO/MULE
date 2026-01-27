@@ -58,6 +58,14 @@ def test_header_components_read_as_expected(wd2_3ch_bin):
     assert sampling_period     == smpl_prd
 
 
+def test_nonexistent_file_raises_error():
+    
+    fake_path = '/this/path/does/not/exist.bin'
+
+    with raises(FileNotFoundError):
+        process_header(fake_path)
+
+
 def test_header_processed_correctly(wd2_3ch_bin):
 
     smpls     = 1000
@@ -134,6 +142,14 @@ def test_formatting_works(data_dir, wd2_3ch_bin):
 
     assert rwf.equals(check_rwf)
     assert evt_info.equals(check_evt_info)
+
+
+def test_save_path_exists():
+
+    data_path = 'some/fake/path/three_channels_WD2.h5'
+    
+    with raises(FileNotFoundError):
+        check_save_path(data_path, overwrite = False)
 
 
 def test_ensure_new_path_created(data_dir):
