@@ -18,16 +18,18 @@ def proc(config_file):
     full_path = os.path.expandvars(config_file)
 
     conf_dict = read_config_file(full_path)
-    # removing the first two components so that they can be fed into functions
-    arg_dict  = dict(list(conf_dict.items())[2:])
-
+    arg_dict = conf_dict.copy()
     # check the method implemented, currently just process
     try:
         match conf_dict['process']:
             case 'decode':
                 if conf_dict['wavedump_edition'] == 2:
+                    del arg_dict['process']
+                    del arg_dict['wavedump_edition']
                     process_bin_WD2(**arg_dict)
                 elif conf_dict['wavedump_edition'] == 1:
+                    del arg_dict['process']
+                    del arg_dict['wavedump_edition']
                     process_bin_WD1(**arg_dict)
                 else:
                     raise RuntimeError(f"wavedump edition {conf_dict['wavedump_edition']} decoding isn't currently implemented.")
