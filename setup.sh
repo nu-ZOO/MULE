@@ -23,7 +23,11 @@ function install_conda {
 			export CONDA_ARCH=x86_64
 			;;
 		arm64|aarch64)
-			export CONDA_ARCH=arm64
+			if [ "$CONDA_OS" = "MacOSX" ]; then
+				export CONDA_ARCH=arm64
+			else
+				export CONDA_ARCH=aarch64
+			fi
 			;;
 		*)
 			echo "Unsupported architecture: $(uname -m)"
