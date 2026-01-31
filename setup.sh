@@ -17,8 +17,21 @@ function install_conda {
 				exit 1;;
 	esac
 
-	echo Installing conda for $CONDA_OS # This doesn't currently understand/recognise arm based architectures. Fix!
-	CONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-py${PYTHON_VERSION//.}_24.9.2-0-${CONDA_OS}-x86_64.sh"
+	# Setting architecture based on input
+	CONDA_ARCH=$(uname -m)
+	
+	case $CONDA_ARCH in
+		x86_64) : ;;
+		arm64)  : ;;
+		aarch64) : ;;
+		*)
+			echo "Installation only supported on x86_64 and arm architectures"
+			exit 1
+			;;
+	esac
+
+	echo Installing conda for $CONDA_OS on $CONDA_ARCH architecture
+	CONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-py${PYTHON_VERSION//.}_24.9.2-0-${CONDA_OS}-${CONDA_ARCH}.sh"
 	if which wget; then
         wget ${CONDA_URL} -O miniconda.sh
     else
@@ -28,7 +41,7 @@ function install_conda {
 	CONDA_SH=$HOME/miniconda/etc/profile.d/conda.sh
     source $CONDA_SH
     echo Activated conda by sourcing $CONDA_SH
-}			
+}	
 
 
 
@@ -74,4 +87,3 @@ echo "Activating environment..."
 conda activate ${MULE_ENV_NAME}
 
 cd ${MULE_DIR}
-
