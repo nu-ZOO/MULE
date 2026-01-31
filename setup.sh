@@ -17,20 +17,15 @@ function install_conda {
 				exit 1;;
 	esac
 
-	# Detect architecture
-	case "$(uname -m)" in
-		x86_64)
-			export CONDA_ARCH=x86_64
-			;;
-		arm64|aarch64)
-			if [ "$CONDA_OS" = "MacOSX" ]; then
-				export CONDA_ARCH=arm64
-			else
-				export CONDA_ARCH=aarch64
-			fi
-			;;
+	# Setting architecture based on input
+	CONDA_ARCH=$(uname -m)
+	
+	case $CONDA_ARCH in
+		x86_64) : ;;
+		arm64)  : ;;
+		aarch64) : ;;
 		*)
-			echo "Unsupported architecture: $(uname -m)"
+			echo "Installation only supported on x86_64 and arm architectures"
 			exit 1
 			;;
 	esac
@@ -92,4 +87,3 @@ echo "Activating environment..."
 conda activate ${MULE_ENV_NAME}
 
 cd ${MULE_DIR}
-
