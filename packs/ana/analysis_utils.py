@@ -201,9 +201,13 @@ def average_waveforms(files : list,
                 if waveform_sum is None:
                     waveform_sum = np.zeros_like(sub_wf_chunk[0], dtype=np.float64)
             
-                # Add the chunk of waveforms to the running sum
+                # Add the chunk of waveforms to the running sum unless its nowt
                 if len(sub_wf_chunk) == 0:
-                    continue  # Skip this iteration
+                    continue
+
+                if waveform_sum is None:
+                    waveform_sum = np.zeros_like(sub_wf_chunk[0], dtype=np.float64)
+
                 waveform_sum += np.sum(sub_wf_chunk, axis=0)
             
                 # Update the number of waveforms processed
@@ -213,6 +217,9 @@ def average_waveforms(files : list,
                 
         else:
             print(f"File not found: {filepath}")
+  
+    if num_waveforms == 0: #Check that we have some waveforms
+        raise ValueError("No valid waveforms after processing")
 
     # Average the waveforms
     average_waveform = waveform_sum / num_waveforms
