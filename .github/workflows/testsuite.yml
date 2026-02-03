@@ -13,7 +13,11 @@ jobs:
         fail-fast: false
         matrix:
           python-version: [3.12]
-          platform: [ubuntu-24.04]
+          platform: 
+            - ubuntu-24.04
+            - ubuntu-24.04-arm64
+            - macos-14  # macOS ARM (M1/M2/M3/M4)
+            - macos-13  # macOS x86_64
       runs-on: ${{ matrix.platform }}
     
       steps:
@@ -21,16 +25,7 @@ jobs:
       
         - name: Test suite
           run: |
-            wget https://repo.anaconda.com/miniconda/Miniconda3-py312_24.9.2-0-Linux-x86_64.sh -O miniconda.sh
-            bash miniconda.sh -b -p $HOME/miniconda
-            source $HOME/miniconda/etc/profile.d/conda.sh
-
-            echo 
-            echo "************************************"
-            echo ----------Conda Installed-----------
-            echo "************************************"
-            echo 
-
+            # Use setup.sh to handle architecture detection automatically
             source setup.sh
 
             echo 
