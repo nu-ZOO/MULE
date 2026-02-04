@@ -26,8 +26,11 @@ jobs:
         - name: Test suite
           run: |
             # Use setup.sh to handle architecture detection automatically
-            # Pipe 1 to auto-select Yes for conda installation if needed
-            echo 1 | source setup.sh
+            # Provide input to auto-select Yes for conda installation if needed
+            source setup.sh <<< "1"
+
+            # Ensure pytest is available in the conda environment
+            conda run -n MULE-3.12-10-24 python -m pip install -U pytest
 
             echo 
             echo "************************************"
@@ -35,4 +38,5 @@ jobs:
             echo "************************************"
             echo 
 
-            PYTEST_ADDOPTS=--color=yes HYPOTHESIS_PROFILE=travis-ci python -m pytest -v 
+            PYTEST_ADDOPTS=--color=yes HYPOTHESIS_PROFILE=travis-ci \
+              conda run -n MULE-3.12-10-24 python -m pytest -v 
