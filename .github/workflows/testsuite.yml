@@ -17,7 +17,7 @@ jobs:
             - ubuntu-24.04
             - ubuntu-24.04-arm64
             - macos-14  # macOS ARM (M1/M2/M3/M4)
-            - macos-13  # macOS x86_64
+            - macos-15-intel  # macOS x86_64
       runs-on: ${{ matrix.platform }}
     
       steps:
@@ -26,7 +26,8 @@ jobs:
         - name: Test suite
           run: |
             # Use setup.sh to handle architecture detection automatically
-            source setup.sh
+            # Pipe 1 to auto-select Yes for conda installation if needed
+            echo 1 | source setup.sh
 
             echo 
             echo "************************************"
