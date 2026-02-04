@@ -39,9 +39,10 @@ function install_conda {
     fi
     bash miniconda.sh -b -p $HOME/miniconda
 	CONDA_SH=$HOME/miniconda/etc/profile.d/conda.sh
-    source $CONDA_SH
-    conda init
-    echo Activated conda by sourcing $CONDA_SH
+	source $CONDA_SH
+	eval "$(conda shell.bash hook)"
+	conda init bash >/dev/null 2>&1 || true
+	echo Activated conda by sourcing $CONDA_SH
 }	
 
 
@@ -66,6 +67,14 @@ echo "Identified directory: $MULE_DIR"
 
 if conda --version ; then
 	echo Initialising Conda...
+	CONDA_BASE=$(conda info --base 2>/dev/null)
+	if [ -n "$CONDA_BASE" ] && [ -f "$CONDA_BASE/etc/profile.d/conda.sh" ]; then
+		source "$CONDA_BASE/etc/profile.d/conda.sh"
+		eval "$(conda shell.bash hook)"
+		conda init bash >/dev/null 2>&1 || true
+	else
+		conda init bash >/dev/null 2>&1 || true
+	fi
 else
 	echo "No Conda installation detected, installing conda."
 	echo 'Download conda? Select [1/2]:'
@@ -85,6 +94,10 @@ then
 fi
 
 echo "Activating environment..."
-conda activate ${MULE_ENV_NAME}
+if [ -n "$CI" ]; then
+	echo "CI detected, skipping conda activate. Use 'conda run -n ${MULE_ENV_NAME} ...'"
+else
+	conda activate ${MULE_ENV_NAME}
+fi
 
 cd ${MULE_DIR}
