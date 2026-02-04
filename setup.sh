@@ -22,7 +22,7 @@ function install_conda {
 	
 	case $CONDA_ARCH in
 		x86_64) : ;;
-		arm64)  : ;;
+		arm64)  : ;;	
 		aarch64) : ;;
 		*)
 			echo "Installation only supported on x86_64 and arm architectures"
@@ -40,6 +40,7 @@ function install_conda {
     bash miniconda.sh -b -p $HOME/miniconda
 	CONDA_SH=$HOME/miniconda/etc/profile.d/conda.sh
     source $CONDA_SH
+    conda init
     echo Activated conda by sourcing $CONDA_SH
 }	
 
