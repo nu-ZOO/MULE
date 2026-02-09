@@ -29,12 +29,11 @@ def remove_secondaries(wf_data : np.ndarray,
     event_number (int)              :                   counter passed through to track events
     verbose (str)                   :                   0 for no info, 1 for ommitted event number, 2 for plots of rejected event
     WINDOW_END (float)              :                   end of the first signal
-    bin_size (int)                  :                   spacing between time bins in ns
     
     Returns:
     wf_data (array)                 :                   none rejected waveform
     '''
-    after_window_wf = wf_data[collect_index(time, WINDOW_END) : len(wf_data)-1] # Making an array of the data afrter WINDOW_END so we can look for peaks there
+    after_window_wf = wf_data[collect_index(time, WINDOW_END) : len(wf_data)-1] # Making an array of the data after WINDOW_END so we can look for peaks there
     if after_window_wf is not None:   
         second_peak = np.max(after_window_wf)
         if second_peak > threshold:
@@ -77,7 +76,7 @@ def cook_data(data : np.ndarray,
                 window_args : dict,
                 chunk_size : int,
                 chunk_number : int,
-                negative : Optional[bool],
+                negative : Optional[bool] = False,
                 baseline_mode : Optional[str] = 'median',
                 verbose : Optional[int] = 1,
                 peak_threshold : Optional[int] = 1000,
@@ -115,29 +114,32 @@ def cook_data(data : np.ndarray,
 
     wf_data = [] # Empty array for the waveform data to be put in
     
-    for i, wf in enumerate(data):  # Process each waveform
-        event_number = i + chunk_size * chunk_number
+    for i, wf in enumerate(data):  # Process each waveform in the chunk individually
+        event_number = i + chunk_size * chunk_number # track the waveform number and the chunk number to keep track of the event number
         if negative:
             wf = -wf # Negative flip
+        # Check that window args agree with wf
+        if window_wf_check(wf, window_args):
+            # ### Baseline subtraction ###
+            # Collect the baselisune region data (sidebands)
+            bl_range_1 = [collect_index(time, BASELINE_POINT_1 - BASELINE_RANGE_1), collect_index(time, BASELINE_POINT_1 + BASELINE_RANGE_1)]
+            bl_range_2 = [collect_index(time, BASELINE_POINT_2 - BASELINE_RANGE_2), collect_index(time, BASELINE_POINT_2 + BASELINE_RANGE_2)]
+            y_sideband = wf[bl_range_1[0]:bl_range_1[1]]
+            y_sideband = list(y_sideband) + list(wf[bl_range_2[0]:bl_range_2[1]])
 
-        # ### Baseline subtraction ###
-        # Collect the baselisune region data (sidebands)
-        bl_range_1 = [collect_index(time, BASELINE_POINT_1 - BASELINE_RANGE_1), collect_index(time, BASELINE_POINT_1 + BASELINE_RANGE_1)]
-        bl_range_2 = [collect_index(time, BASELINE_POINT_2 - BASELINE_RANGE_2), collect_index(time, BASELINE_POINT_2 + BASELINE_RANGE_2)]
-        y_sideband = wf[bl_range_1[0]:bl_range_1[1]]
-        y_sideband = list(y_sideband) + list(wf[bl_range_2[0]:bl_range_2[1]])
-
-        # Subtract the baseline value from the waveform
-        sub_wf = wf - subtract_baseline(y_sideband, sub_type=baseline_mode)
+            # Subtract the baseline value from the waveform
+            sub_wf = wf - subtract_baseline(y_sideband, sub_type=baseline_mode)
         
-        # Suppress baseline
-        sup_wf = suppress_baseline(sub_wf, suppression_threshold)
+            # Suppress baseline
+            sup_wf = suppress_baseline(sub_wf, suppression_threshold)
         
-        # Remove secondary alphas
-        final_wf = remove_secondaries(sup_wf, peak_threshold, time, event_number, verbose, WINDOW_END, bin_size)
-        if final_wf is None:
+            # Remove secondary alphas
+            final_wf = remove_secondaries(sup_wf, peak_threshold, time, event_number, verbose, WINDOW_END)
+            if final_wf is None:
+                continue
+        else:
+            print(f"Waveform {event_number} didn,t match window arguments, hence not included")
             continue
-            
         wf_data.append(final_wf)
 
     # Return subtracted waveforms
@@ -196,11 +198,7 @@ def average_waveforms(files : list,
                     waveform_chunk, bin_size, window_args, chunk_size, chunk_number, negative, 
                     baseline_mode, verbose, peak_threshold, suppression_threshold
                 )
-            
-                # Make the sum array with the shape of the first chunk of waveforms
-                if waveform_sum is None:
-                    waveform_sum = np.zeros_like(sub_wf_chunk[0], dtype=np.float64)
-            
+
                 # Add the chunk of waveforms to the running sum unless its nowt
                 if len(sub_wf_chunk) == 0:
                     continue
@@ -225,3 +223,51 @@ def average_waveforms(files : list,
     average_waveform = waveform_sum / num_waveforms
     del x
     return average_waveform
+
+def window_overlap_check(window_args : dict):
+    '''
+    Checks that window args dont overlap with one another
+    
+    Params:
+    window_args  : dict
+    '''
+    WINDOW_START     = window_args['WINDOW_START']
+    WINDOW_END       = window_args['WINDOW_END']
+    BASELINE_POINT_1 = window_args['BASELINE_POINT_1']
+    BASELINE_POINT_2 = window_args['BASELINE_POINT_2']
+    BASELINE_RANGE_1 = window_args['BASELINE_RANGE_1']
+    BASELINE_RANGE_2 = window_args['BASELINE_RANGE_2']
+    # make sure all window arg values are greater than zero
+    if WINDOW_START<0 or WINDOW_END<0 or BASELINE_POINT_1-BASELINE_RANGE_1/2<0 or BASELINE_POINT_2-BASELINE_RANGE_2<0:
+        raise ValueError('window args include values that are negative')
+    # See if baselines overlap with window
+    if BASELINE_POINT_1-BASELINE_RANGE_1/2 < WINDOW_END or BASELINE_POINT_2-BASELINE_RANGE_2/2 < WINDOW_END:
+        raise ValueError('error in window overlap')
+    # See if baselines overlap with each other
+    y = max(BASELINE_POINT_1-BASELINE_RANGE_1/2,BASELINE_POINT_2-BASELINE_RANGE_2/2) < min(BASELINE_POINT_1+BASELINE_RANGE_1/2,BASELINE_POINT_2+BASELINE_RANGE_2/2)
+    if y:
+        raise ValueError('error in baseline overlap')
+    return
+
+def window_wf_check(wf : np.ndarray,
+                     window_args : dict) -> (bool):
+    '''
+    Checks that window args agree with wf length
+    Params:
+    wf  : np.ndarray of the waveform
+    window_args : dict of window arguments
+
+    Returns:
+    bool, if the waveforms agree returns True, if not, False for flagging
+    '''
+    length = len(wf)
+    WINDOW_START     = window_args['WINDOW_START']
+    WINDOW_END       = window_args['WINDOW_END']
+    BASELINE_POINT_1 = window_args['BASELINE_POINT_1']
+    BASELINE_POINT_2 = window_args['BASELINE_POINT_2']
+    BASELINE_RANGE_1 = window_args['BASELINE_RANGE_1']
+    BASELINE_RANGE_2 = window_args['BASELINE_RANGE_2']
+    if WINDOW_START>length or WINDOW_END>length or BASELINE_POINT_1+BASELINE_RANGE_1/2>length or BASELINE_POINT_2+BASELINE_RANGE_2>length:
+        return False
+    else:
+        return True
