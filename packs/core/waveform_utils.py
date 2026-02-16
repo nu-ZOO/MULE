@@ -51,7 +51,7 @@ def subtract_baseline(y_data : np.ndarray,
 
         case _:
             raise ValueError(
-                f"Invalid sub_type '{sub_type}'. Expected 'mean' or 'median'."
+                f"Invalid sub_type '{sub_type}'. Expected 'mean' or 'median' or 'none'."
             )
 
     return total
