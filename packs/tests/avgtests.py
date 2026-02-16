@@ -234,7 +234,7 @@ def test_chunk_size_larger_than_data(tmp_path): #Tests when the chunk size is la
     expected = np.mean(waveforms, axis=0)
     np.testing.assert_allclose(avg, expected, rtol=1e-6)
 
-def test_empty_chunk_handling(tmp_path):
+def test_empty_chunk_handling(tmp_path): #Tests for when a whole chunk gets rejected by cook data
     n_waveforms = 5
     n_samples = 25
 
