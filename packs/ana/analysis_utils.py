@@ -138,7 +138,7 @@ def cook_data(data : np.ndarray,
             if final_wf is None:
                 continue
         else:
-            print(f"Waveform {event_number} didn,t match window arguments, hence not included")
+            print(f"Waveform {event_number} didn't match window arguments, hence not included")
             continue
         wf_data.append(final_wf)
 
@@ -203,6 +203,7 @@ def average_waveforms(files : list,
                 if len(sub_wf_chunk) == 0:
                     continue
 
+                # Initialise the waveform sum
                 if waveform_sum is None:
                     waveform_sum = np.zeros_like(sub_wf_chunk[0], dtype=np.float64)
 
