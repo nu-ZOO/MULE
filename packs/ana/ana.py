@@ -3,6 +3,7 @@ import os
 from packs.core.io import read_config_file
 from packs.ana.analysis_utils import average_waveforms, window_overlap_check
 from packs.core.core_utils import check_test
+import h5py
 
 def ana(config_file : str) -> (np.ndarray):
     # checks if test, if so ends run
@@ -16,8 +17,20 @@ def ana(config_file : str) -> (np.ndarray):
     if isinstance(conf_args['files'], list):
         print('Averaging waveform....')
         avgwf = average_waveforms(**arg_dict)
-        np.savetxt(conf_args['save_path'], avgwf, delimiter = ',')
-        print('Average waveform saved as', conf_args['save_path'])
+
+        base_path = conf_args['save_path']   # Find the save path from config
+        path = base_path
+        base, ext = os.path.splitext(base_path)
+
+        counter = 1                         # Stop overwrites by adding number to save path
+        while os.path.exists(path):
+            path = f"{base}_{counter}{ext}"
+            counter += 1
+
+        with h5py.File(path, 'w') as f:     # Save as a h5
+            f.create_dataset('Average_waveform', data=avgwf)
+
+        print(f"Saved to: {path}")
 
     else:
         print("Please input files as a list.")
