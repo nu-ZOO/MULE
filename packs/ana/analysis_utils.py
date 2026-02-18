@@ -199,7 +199,7 @@ def average_waveforms(files : list,
                     baseline_mode, verbose, peak_threshold, suppression_threshold
                 )
 
-                # Add the chunk of waveforms to the running sum unless its nowt
+                # Add the chunk of waveforms to the running sum unless its nowt (nowt means nothing)
                 if len(sub_wf_chunk) == 0:
                     continue
 
