@@ -128,7 +128,7 @@ def collect_sidebands(wf, time, cali_params):
     for i, band in enumerate(cali_params['sidebands']):
         # extract the baseline indexes from time and collect y values
         bl_range = [collect_index(time, band[0]), collect_index(time, band[1])]
-        sideband_values = np.append(sideband_values, wf[bl_range[0]:bl_range[1]]))
+        sideband_values = np.append(sideband_values, wf[bl_range[0]:bl_range[1]])
 
     return sideband_values.flatten()
 
