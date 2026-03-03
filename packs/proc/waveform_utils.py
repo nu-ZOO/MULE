@@ -72,10 +72,8 @@ def collect_index(time, value):
         time        (np.array)        :     Time array
         value       (float/int)       :     Value that you wish to locate the index of
     '''
-
     val = find_nearest(time, value)
     index = np.where(time == val)[0]
-
     if len(index == 1):
         return index[0]
     else:
@@ -149,7 +147,7 @@ def collect_integration_window(time, cali_params, H_index):
             start_index = collect_index(time, time[H_index] - cali_params['window'][0])
             end_index = collect_index(time, time[H_index] + cali_params['window'][1])
         case _:
-            raise ValueError(f'{cali_params['method']} is not a valid integration method.')
+            raise ValueError(f"{cali_params['method']} is not a valid integration method.")
 
     return (start_index, end_index)
 
