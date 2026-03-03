@@ -91,7 +91,10 @@ def extract_peak(y_data) :
     '''
     Collects peak and index of peak in data.
     '''
-    return (np.max(y_data), np.argmax(y_data))
+    if y_data.size == 0:
+        raise ValueError(f"y_data provided to extract_peak() is empty")
+    else:
+        return (np.max(y_data), np.argmax(y_data))
 
 
 def visualise_waveforms(file, cali_params, time, key):
