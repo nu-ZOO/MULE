@@ -126,12 +126,15 @@ def collect_sidebands(wf, time, cali_params):
     '''
     extract the sideband components of the waveform
     '''
+    # catch for if sidebands is a non-nested tuple
+    if type(cali_params['sidebands'][0]) == int:
+        cali_params['sidebands'] = (cali_params['sidebands'],)
+
     sideband_values = np.array([])
     for i, band in enumerate(cali_params['sidebands']):
         # extract the baseline indexes from time and collect y values
         bl_range = [collect_index(time, band[0]), collect_index(time, band[1])]
         sideband_values = np.append(sideband_values, wf[bl_range[0]:bl_range[1]])
-
     return sideband_values.flatten()
 
 
