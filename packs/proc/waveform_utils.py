@@ -23,6 +23,8 @@ from packs.types import types
 
 from tqdm import tqdm
 
+from packs.core.core_utils import PeakRangeError
+
 """
 Waveform utilities
 
@@ -120,8 +122,7 @@ def visualise_waveforms(file, cali_params, time, key):
     response = input("Are the bands acceptable? [y/n]: ").strip().lower()
     if response not in ['y', 'yes']:
         print("Please reset the bands and process again")
-        exit()
-
+        raise PeakRangeError()
 
 def collect_sidebands(wf, time, cali_params):
     '''
