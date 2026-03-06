@@ -176,13 +176,14 @@ def test_runtime_error_when_too_many_save_files(data_dir):
 
 @mark.parametrize("config, inpt, output, comparison", [("process_WD2_1channel.conf", "one_channel_WD2.bin", "one_channel_tmp.h5", "one_channel_WD2.h5"),
                                            ("process_WD2_3channel.conf", "three_channels_WD2.bin", "three_channels_tmp.h5", "three_channels_WD2.h5")])
-def test_decode_produces_expected_output(config, inpt, output, comparison, MULE_dir, data_dir):
+def test_decode_produces_expected_output(config, inpt, output, comparison, MULE_dir, data_dir, tmp_path):
 
     # ensure path is correct
     file_path       =  data_dir + inpt
-    save_path       =  data_dir + output
+    save_path       =  str(tmp_path / output)
     comparison_path =  data_dir + comparison
     config_path     =  data_dir + "configs/" + config
+    temp_config = str(tmp_path / config)
 
     # collect samples from header
     _, samples, _, _ = process_header(file_path)
@@ -193,11 +194,11 @@ def test_decode_produces_expected_output(config, inpt, output, comparison, MULE_
     cnfg.set('required', 'file_path', "'" +  file_path + "'") # need to add comments around for config reasons
     cnfg.set('required', 'save_path', "'" +  save_path + "'")
 
-    with open(config_path, 'w') as cfgfile:
+    with open(temp_config, 'w') as cfgfile:
         cnfg.write(cfgfile)
 
     # run processing pack decode
-    run_pack = ['python3', MULE_dir + "/bin/mule", "proc", config_path]
+    run_pack = ['python3', MULE_dir + "/bin/mule", "proc", temp_config]
     subprocess.run(run_pack)
     # check that the resulting dataframe is as expected
     assert load_evt_info(save_path).equals(load_evt_info(comparison_path))
