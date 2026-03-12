@@ -64,7 +64,8 @@ def find_nearest(array, value):
         return array[idx]
 
 
-def collect_index(time, value):
+def collect_index(time  : np.ndarray,
+                  value : (int | float)):
     '''
     Collects the array index corresponding to a certain time value
 
@@ -122,7 +123,10 @@ def visualise_waveforms(file, cali_params, time, key):
         print("Please reset the bands and process again")
         raise PeakRangeError()
 
-def collect_sidebands(wf, time, cali_params):
+
+def collect_sidebands(wf           :  list[float | int],
+                      time         :  np.ndarray,
+                      cali_params  :  dict):
     '''
     extract the sideband components of the waveform
     '''
@@ -138,9 +142,22 @@ def collect_sidebands(wf, time, cali_params):
     return sideband_values.flatten()
 
 
-def collect_integration_window(time, cali_params, H_index):
+def collect_integration_window(time         :  np.array,
+                               cali_params  :  dict,
+                               H_index      :  int):
     '''
-    extract the integration window index of the waveform
+    Extract the integration window index of the waveform.
+    Depends on the method, currently there are two:
+        manual : use explicit window values for the integration waveform
+        height : use the highest peak in the waveform and pads around it
+                 with the window parameters
+
+    Parameters
+    ----------
+
+    time        (np.array)        :     Time array
+    cali_params (dict)            :     Dictionary of calibration parameters
+    H_index     (int)             :     Index of highest point (only relevant for 'height' method)
     '''
     match cali_params['method']:
         case 'manual':
