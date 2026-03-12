@@ -164,6 +164,15 @@ def collect_integration_window(time         :  np.array,
     cali_params (dict)            :     Dictionary of calibration parameters
     H_index     (int)             :     Index of highest point (only relevant for 'height' method)
     '''
+
+    time_check = np.unique(np.diff(time))
+    # check that time is monatonic
+    if len(time_check) != 1:
+        raise ValueError(f'Time bins are not monotonically changing.')
+    # and increasing
+    if np.any(time_check < 0):
+        raise ValueError(f'Time bins are not increasing')
+
     match cali_params['method']:
         case 'manual':
             start_index = collect_index(time, cali_params['window'][0])
@@ -173,6 +182,10 @@ def collect_integration_window(time         :  np.array,
             end_index = collect_index(time, time[H_index] + cali_params['window'][1])
         case _:
             raise ValueError(f"{cali_params['method']} is not a valid integration method.")
+
+    # ensure start and end index are ordered correctly
+    if start_index >= end_index:
+        raise ValueError(f'Start and end indices are out of order: [{start_index}, {end_index}]\nSelect window values to ensure linear indices.')
 
     return (start_index, end_index)
 
