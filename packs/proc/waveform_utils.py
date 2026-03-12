@@ -134,12 +134,17 @@ def collect_sidebands(wf           :  list[float | int],
     if type(cali_params['sidebands'][0]) == int:
         cali_params['sidebands'] = (cali_params['sidebands'],)
 
-    sideband_values = np.array([])
+    # set to remove duplicate time values
+    baseline_ranges = set()
     for i, band in enumerate(cali_params['sidebands']):
         # extract the baseline indexes from time and collect y values
         bl_range = [collect_index(time, band[0]), collect_index(time, band[1])]
-        sideband_values = np.append(sideband_values, wf[bl_range[0]:bl_range[1]])
-    return sideband_values.flatten()
+        baseline_ranges.update(np.arange(bl_range[0], bl_range[1], 1))
+
+
+    wf = np.array(wf)
+    sideband_values = wf[list(baseline_ranges)]
+    return sideband_values
 
 
 def collect_integration_window(time         :  np.array,
