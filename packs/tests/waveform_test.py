@@ -8,7 +8,8 @@ from hypothesis import given, strategies as st
 from hypothesis import settings
 from hypothesis import Verbosity
 
-from packs.proc.waveform_utils import extract_peak, collect_sidebands, collect_integration_window
+from packs.proc.waveform_utils import extract_peak, collect_sidebands, collect_integration_window, calibrate
+from packs.core.io             import reader
 from packs.core.core_utils     import PeakRangeError
 
 @settings(max_examples = 500)
@@ -140,5 +141,41 @@ def test_incorrect_window_setting(window):
 
     with raises(ValueError):
         _, _ = collect_integration_window(np.array(time), cali_params, H_index)
+
+
+def test_calibrate_works_as_intended(tmp_path, data_dir):
+    '''
+    simple test that the calibrate function works as intended
+    '''
+    file      = data_dir + 'three_channels_WD2.h5'
+    save_path = str(tmp_path / 'three_channels_calib_WD2.h5')
+    overwrite = True
+    visualise = False
+    cali_params      = {
+        'method'         : 'manual',
+        'window'         : (5000, 6000),
+        'baseline_sub'   : 'median',
+        'sidebands'      : ((100, 300), (2900, 3100)),
+        'negative'       : True}
+
+
+    # run calibrate()
+    calibrate(file, cali_params, save_path, overwrite, visualise)
+
+    # crosscheck with prior sample
+    cross_check = reader(data_dir + 'three_channels_calib_WD2.h5', 'CALI', 'wf_info')
+    new_data    = reader(data_dir + 'three_channels_calib_WD2.h5', 'CALI', 'wf_info')
+
+    # read old and new data, compare
+    for i in range(0,20):
+        assert next(cross_check).tolist() == next(new_data).tolist()
+
+    # overwrite, check the other part
+    cross_check = reader(data_dir + 'three_channels_calib_WD2.h5', 'CALI', 'subwf-1')
+    new_data    = reader(data_dir + 'three_channels_calib_WD2.h5', 'CALI', 'subwf-1')
+
+    # read old and new data, compare
+    for i in range(0,20):
+        assert next(cross_check) == next(new_data)
 
 
