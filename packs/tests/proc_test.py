@@ -61,6 +61,9 @@ def test_changing_config_order(config, inpt, output, comparison, MULE_dir, data_
         for key in new_order:
             reordered.set("required", key, cnfg.get("required", key))
 
+        reordered.set('required', 'file_path', "'" +  file_path + "'") # need to add comments around for config reasons
+        reordered.set('required', 'save_path', f"'{save_path}'")
+
         # Write back
         with open(config_path, "w") as f:
             reordered.write(f)
