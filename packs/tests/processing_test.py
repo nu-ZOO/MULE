@@ -217,6 +217,7 @@ def test_WD1_decode_produces_expected_output(config, inpt, output, comparison, M
     save_path       = tmp_path / output # PosixPaths behave differently
     comparison_path = data_dir + comparison
     config_path     = data_dir + "configs/" + config
+    temp_config = str(tmp_path / config)
 
     # rewrite paths to files
     cnfg = configparser.ConfigParser()
@@ -224,11 +225,11 @@ def test_WD1_decode_produces_expected_output(config, inpt, output, comparison, M
     cnfg.set('required', 'file_path', "'" +  file_path + "'") # need to add comments around for config reasons
     cnfg.set('required', 'save_path', f"'{save_path}'") # PosixPaths behave differently
 
-    with open(config_path, 'w') as cfgfile:
+    with open(temp_config, 'w') as cfgfile:
         cnfg.write(cfgfile)
 
     # run processing pack decode
-    run_pack = ['python3', MULE_dir + "/bin/mule", "proc", config_path]
+    run_pack = ['python3', MULE_dir + "/bin/mule", "proc", temp_config]
     subprocess.run(run_pack)
 
     # the event info can be read out like a normal h5, the RWF cannot due to how they're structured
