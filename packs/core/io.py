@@ -85,11 +85,27 @@ def load_rwf_info(file_path  :  str,
     return pd.DataFrame(map(list, h5_data), columns = (types.rwf_type(samples)).names)
 
 
-def check_chunking(file):
+def check_chunking(file  :  str) -> Tuple[bool, list, int, list]:
     '''
     quantifies the chunking within the dataset for processing purposes
-    CHUNKING IS OBSOLETE AT THIS POINT DUE TO THE LAZY PROCESSING, 
+    CHUNKING IS OBSOLETE AT THIS POINT DUE TO THE LAZY PROCESSING,
     THIS IS A BACKWARDS COMPATIBILITY MEASURE.
+
+
+    Parameters
+    ----------
+
+    file (str)  :  Path to data to check
+
+    Returns
+    -------
+
+    (Tuple)     :  Tuple including:
+                        if the data is chunked or not,
+                        raw waveform keys,
+                        number of chunks,
+                        event information keys
+
     '''
 
     with h5py.File(file, 'r') as h5f:
@@ -102,17 +118,32 @@ def check_chunking(file):
         return (True, keys, l, e_keys)
     else:
         return (False, keys, l, e_keys)
-    
 
-def check_rows(file_path, group, node):
+
+def check_rows(file_path  :  str,
+               group      :  str,
+               node       :  str) -> int:
     '''
     check the number of rows in the df
+
+    Parameters
+    ----------
+
+    file_path (str)  :  File path
+    group     (str)  :  h5 group
+    node      (str)  :  h5 node
+
+    Returns
+    -------
+
+    (str)            :  Number of rows
+
     '''
     with h5py.File(file_path, 'r') as f:
         dset = f[f'{group}/{node}']
         num_rows = dset.shape[0]
-    
-    return num_rows        
+
+    return num_rows
 
 
 def read_config_file(file_path  :  str) -> dict:

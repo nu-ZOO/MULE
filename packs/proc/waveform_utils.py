@@ -17,6 +17,8 @@ from typing import Generic
 from typing import Optional
 from typing import Union
 from typing import Tuple
+from typing import Dict
+from typing import List
 
 from packs.core.io import writer, reader, check_chunking, check_rows
 from packs.types import types
@@ -32,9 +34,26 @@ This file holds relevant functions for processing waveforms.
 """
 
 # relevant functions
-def subtract_baseline(y_data, sub_type = 'median'):
+def subtract_baseline(y_data     :  np.ndarray,
+                      sub_type   :  Optional[str] = 'median') -> int:
     '''
-    determines the value that should be subtracted to produce baseline
+    Determines the value that should be subtracted to produce baseline
+    using a few differing methods depending on user input:
+        - mean
+        - median
+
+    Parameters
+    ----------
+
+    y_data   (np.array)  :  Array of waveform information
+    sub_type (str)       :  Subtraction type, median or mean
+
+
+    Returns
+    -------
+
+    (int)                :  Value to subtract off waveform
+
     '''
 
     # MEAN METHOD
@@ -53,9 +72,22 @@ def subtract_baseline(y_data, sub_type = 'median'):
     return total
 
 
-def find_nearest(array, value):
+def find_nearest(array  :  np.ndarray,
+                 value  :  (int | float)) -> (int | float):
     '''
     Finds the array value closest to the provided value
+
+    Parameters
+    ----------
+
+    array  (np.array)     :  Array of values
+    value  (int | float)  :  Value to match within the array
+
+    Returns
+    -------
+
+    (int | float)         :  Closest number to value
+
     '''
     idx = np.searchsorted(array, value, side="left")
     if idx > 0 and (idx == len(array) or m.fabs(value - array[idx-1]) < m.fabs(value - array[idx])):
@@ -65,13 +97,21 @@ def find_nearest(array, value):
 
 
 def collect_index(time  : np.ndarray,
-                  value : (int | float)):
+                  value : (int | float)) -> int:
     '''
     Collects the array index corresponding to a certain time value
 
-    Args:
-        time        (np.array)        :     Time array
-        value       (float/int)       :     Value that you wish to locate the index of
+    Parameters
+    ----------
+
+    time   (np.array)   :  Time array
+    value  (float/int)  :  Value that you wish to locate the index of
+
+    Returns
+    -------
+
+    (int)                   :  Index matching value
+
     '''
     val = find_nearest(time, value)
     index = np.where(time == val)[0]
@@ -81,16 +121,37 @@ def collect_index(time  : np.ndarray,
         raise Exception("Index collection found more than one value with the same value entered.\nAre you sure you entered the right array?")
 
 
-def integrate(y_data):
+def integrate(y_data  :  np.ndarray) -> (int | float):
     '''
     Collect the integral across an event by summing y components
+
+    Parameters
+    ----------
+
+    y_data  (np.array)  :  Array of waveform information
+
+    Returns
+    -------
+
+    (int | float)       :  Integral of y_data
+
     '''
     return np.sum(y_data)
 
 
-def extract_peak(y_data) :
+def extract_peak(y_data  :  np.ndarray) -> Tuple[(int | float), int] :
     '''
     Collects peak and index of peak in data.
+
+    Parameters
+    ----------
+
+    y_data (np.array)     :  Array of waveform information
+
+    Returns
+    -------
+
+    ((int | float), int)  :  Tuple of the max value and its index
     '''
     if y_data.size == 0:
         raise ValueError(f"y_data provided to extract_peak() is empty")
@@ -98,10 +159,23 @@ def extract_peak(y_data) :
         return (np.max(y_data), np.argmax(y_data))
 
 
-def visualise_waveforms(file, cali_params, time, key):
+def visualise_waveforms(file         :  str,
+                        cali_params  :  Dict,
+                        time         :  np.ndarray,
+                        key          :  str):
     '''
     Visualise waveforms and ask the user if the sidebands
     and integration window are acceptable.
+
+    Parameters
+    ----------
+
+    file        (str)       :  Input path
+    cali_params (dict)      :  Dictionary of calibration parameters
+                               passed through `calibrate()`
+    time        (np.array)  :  Time array
+    key         (str)       :  Key for accessing the raw waveforms (chunking component, obsolete soon)
+
     '''
     for i, waveform in enumerate(reader(file, 'rwf', key, 'r+')):
         plt.plot(time, waveform['rwf'], alpha = 0.2, zorder = 1)
@@ -124,11 +198,24 @@ def visualise_waveforms(file, cali_params, time, key):
         raise PeakRangeError()
 
 
-def collect_sidebands(wf           :  list[float | int],
+def collect_sidebands(wf           :  List[float | int],
                       time         :  np.ndarray,
-                      cali_params  :  dict):
+                      cali_params  :  Dict) -> List:
     '''
     extract the sideband components of the waveform
+
+    Parameters
+    ----------
+
+    wf          (list[float | int])  :  waveform values
+    time        (np.ndarray)         :  time values
+    cali_params (dict)               :  calibration parameter dictionary
+                                        generally passed through `calibrate()`
+
+    Returns
+    -------
+
+    (list)                           :  List of sideband values
     '''
     # catch for if sidebands is a non-nested tuple
     if type(cali_params['sidebands'][0]) == int:
@@ -149,7 +236,7 @@ def collect_sidebands(wf           :  list[float | int],
 
 def collect_integration_window(time         :  np.array,
                                cali_params  :  dict,
-                               H_index      :  int):
+                               H_index      :  int) -> Tuple[int, int]:
     '''
     Extract the integration window index of the waveform.
     Depends on the method, currently there are two:
@@ -163,6 +250,11 @@ def collect_integration_window(time         :  np.array,
     time        (np.array)        :     Time array
     cali_params (dict)            :     Dictionary of calibration parameters
     H_index     (int)             :     Index of highest point (only relevant for 'height' method)
+
+    Returns
+    -------
+
+    (int, int)                    :     Start and end index values
     '''
 
     time_check = np.unique(np.diff(time))
