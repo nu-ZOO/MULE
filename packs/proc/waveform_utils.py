@@ -60,7 +60,7 @@ def subtract_baseline(y_data     :  np.ndarray,
     # add all ADC values and divide by length (rough), also remove negatives
     match sub_type:
         case 'mean':
-            total = (np.sum(y_data)/len(y_data))
+            total = np.mean(y_data)
 
         case 'median':
             total = np.median(y_data)
