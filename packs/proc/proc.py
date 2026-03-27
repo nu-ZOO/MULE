@@ -32,8 +32,6 @@ def proc(config_file):
                     case other:
                         raise RuntimeError(f"wavedump edition {other} decoding isn't currently implemented.")
             case 'calibrate':
-                # removing the first component so that the other arguments are passed correctly
-                arg_dict  = dict(list(conf_dict.items())[1:])
                 calibrate(**conf_dict)
             case other:
                 raise RuntimeError(f"process {other} not currently implemented.")
