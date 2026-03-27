@@ -56,8 +56,6 @@ def subtract_baseline(y_data     :  np.ndarray,
 
     '''
 
-    # MEAN METHOD
-    # add all ADC values and divide by length (rough), also remove negatives
     match sub_type:
         case 'mean':
             total = np.mean(y_data)
@@ -313,7 +311,7 @@ def calibrate(file_path     :  str,
                                                             mean
                                                         sidebands    ((int, int),
                                                                       (int, int))  :  windows to extract a baseline over (ns)
-                                                        negative     (bool)        :  glag for flipping the waveform
+                                                        negative     (bool)        :  flag for flipping the waveform
         save_path     (str)                     :  Path to save to if desired
         overwrite     (bool)                    :  Boolean for overwriting pre-existing datasets
         visualise     (bool)                    :  visualiser for the and signal extraction area
