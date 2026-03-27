@@ -28,3 +28,11 @@ class MalformedHeaderError(Exception):
     def __str__(self):
         return f"MalformedHeaderError: Headers don't output expected result. Ensure the .dat file provided is formatted correctly.\nFirst Header {self.header1}\nSecond Header {self.header2}"
 
+class PeakRangeError(Exception):
+    '''
+    Exception created for when the peak range visualised by the waveform
+    processing is not accepted by the user.
+    '''
+
+    def __str__(self):
+        return "PeakRangeError: Peak range shown in the visualiser rejected."

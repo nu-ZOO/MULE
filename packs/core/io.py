@@ -85,6 +85,67 @@ def load_rwf_info(file_path  :  str,
     return pd.DataFrame(map(list, h5_data), columns = (types.rwf_type(samples)).names)
 
 
+def check_chunking(file  :  str) -> Tuple[bool, list, int, list]:
+    '''
+    quantifies the chunking within the dataset for processing purposes
+    CHUNKING IS OBSOLETE AT THIS POINT DUE TO THE LAZY PROCESSING,
+    THIS IS A BACKWARDS COMPATIBILITY MEASURE.
+
+
+    Parameters
+    ----------
+
+    file (str)  :  Path to data to check
+
+    Returns
+    -------
+
+    (Tuple)     :  Tuple including:
+                        if the data is chunked or not,
+                        raw waveform keys,
+                        number of chunks,
+                        event information keys
+
+    '''
+
+    with h5py.File(file, 'r') as h5f:
+        gr     = h5f['rwf']
+        e      = h5f['event_information']
+        keys   = list(gr.keys())
+        e_keys = list(e.keys())
+        l      = len(keys)
+    if l > 1:
+        return (True, keys, l, e_keys)
+    else:
+        return (False, keys, l, e_keys)
+
+
+def check_rows(file_path  :  str,
+               group      :  str,
+               node       :  str) -> int:
+    '''
+    check the number of rows in the df
+
+    Parameters
+    ----------
+
+    file_path (str)  :  File path
+    group     (str)  :  h5 group
+    node      (str)  :  h5 node
+
+    Returns
+    -------
+
+    (str)            :  Number of rows
+
+    '''
+    with h5py.File(file_path, 'r') as f:
+        dset = f[f'{group}/{node}']
+        num_rows = dset.shape[0]
+
+    return num_rows
+
+
 def read_config_file(file_path  :  str) -> dict:
     '''
     Read config file passed in via 'mule' and extract relevant information for pack.
@@ -180,16 +241,16 @@ def writer(path        :  str,
                                    This method is best seen in action in `process_bin_WD1()`.
             * Data should be in a numpy structured array format, as can be seen in WD1 and WD2 processing
             '''
-            if fixed_size is False:
+            if not fixed_size:
                 # create dataset if doesnt exist, if does make larger
                 if dataset in gr:
                     dset = gr[dataset]
-                    dset.resize((dset.shape[0] + 1, *dset.shape[1:]))
+                    dset.resize((dset.shape[0] + 1,))
                     dset[-1] = data
                 else:
                     max_shape = (None,) + data.shape
-                    dset = gr.require_dataset(dataset, shape = (1,) + data.shape,
-                                              maxshape = max_shape, dtype = data.dtype,
+                    dset = gr.require_dataset(dataset, shape = (1,),
+                                              maxshape = (None,), dtype = data.dtype,
                                               chunks = True)
                     dset[0] = data
             else:
@@ -198,7 +259,7 @@ def writer(path        :  str,
                 if dataset in gr:
                     dset = gr[dataset]
                 else:
-                    dset = gr.require_dataset(dataset, shape = (fixed_size[1],) + data.shape,
+                    dset = gr.require_dataset(dataset, shape = (fixed_size[1],) + (),
                                               maxshape = fixed_size[1], dtype = data.dtype,
                                               chunks = True)
                 dset[index] = data
@@ -209,24 +270,28 @@ def writer(path        :  str,
         h5f.close()
 
 
-def reader(path     :  str,
-           group    :  str,
-           dataset  :  str) -> Generator:
+def reader(path         :  str,
+           group        :  str,
+           dataset      :  str,
+           file_access  :  Optional[str] = 'r') -> Generator:
     '''
     A lazy h5 reader that will iteratively read from a dataset, with the formatting:
 
     FILE.H5 -> GROUP/DATASET
     Parameters
     ----------
-    path (str)       :  File path
-    group (str)      :  Group name within the h5 file
-    dataset (str)    :  Dataset name within the group
+    path (str)         :  File path
+    group (str)        :  Group name within the h5 file
+    dataset (str)      :  Dataset name within the group
+    file_access (str)  :  Defines what sort of access available to provided file.
+                          Useful for reading out events, processing them and then
+                          writing them back in with writer()
     Returns
     -------
     row (generator)  :  Generator object that returns the next row from the dataset upon being called.
     '''
 
-    with h5py.File(path, 'r') as h5f:
+    with h5py.File(path, file_access) as h5f:
         gr = h5f[group]
         dset = gr[dataset]
 
