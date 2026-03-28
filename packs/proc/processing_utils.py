@@ -526,6 +526,70 @@ def process_bin_WD1(file_path    :  str,
                 write('rwf', waveforms, (True, num_of_events, i))
 
 
+
+def process_bin_WD2_lazy(file_path  :  str,
+                    save_path  :  str,
+                    overwrite  :  Optional[bool] = False,
+                    print_mod  :  Optional[int]  = -1):
+
+    '''
+    WAVEDUMP 2: Takes a binary file and outputs the containing waveform information in a h5 file.
+
+    For particularly large waveforms/number of events. You can 'chunk' the data such that
+    each dataset holds `counts` events.
+
+    Parameters
+    ----------
+
+        file_path  (str)   :  Path to binary file
+        save_path  (str)   :  Path to saved file
+        overwrite  (bool)  :  Boolean for overwriting pre-existing files
+        print_mod  (int)   :  Readout frequency for number of events, -1 implies no readout
+
+    Returns
+    -------
+        None
+    '''
+
+    # Ensure save path is clear
+    save_path = check_save_path(save_path, overwrite)
+    print(f'\nData input   :  {file_path}\nData output  :  {save_path}')
+
+    # collect header info
+    wdtype, samples, sampling_period, channels = process_header(file_path)
+
+   # create header length (bytes) for processing
+    if channels == 1:
+        header_size = 24
+    else:
+        header_size = 28
+
+    # open file for reading
+    with open(file_path, 'rb') as file:
+        with writer(save_path, 'RAW', overwrite) as write:
+
+            for i, (flag, array) in enumerate(read_binary_lazy(file, wdtype)):
+
+                if (i % print_mod == 0) and (print_mod != -1):
+                    print(f"Event {i}")
+
+                # catch, once done, rwf should be empty
+                if flag:
+
+                    evt_info, rwf = format_wfs(array, wdtype, samples, channels)
+
+
+                    # first run-through, collect the header information to extract table size
+                    if i == 0:
+                        file_size     = os.path.getsize(file_path)
+                        waveform_size = ((samples * channels * 4 ) + header_size) # can't remember why *2, will need to test this
+                        num_of_events = int(file_size / waveform_size)
+
+                    write('event_info', evt_info, (True, num_of_events, i))
+                    # writer only takes one row at a time, can't broadcast all three at once
+                    for j, wfs in enumerate(rwf):
+                        write('rwf',        wfs,      (True, num_of_events * channels, i + ((channels-1)*i) + j))
+
 def process_bin_WD2(file_path  :  str,
                     save_path  :  str,
                     overwrite  :  Optional[bool] = False,
