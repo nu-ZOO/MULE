@@ -4,7 +4,7 @@ import traceback
 
 from packs.core.io                import read_config_file
 from packs.proc.processing_utils  import process_csv_lecroy
-from packs.proc.processing_utils  import process_bin_WD2
+from packs.proc.processing_utils  import process_bin_WD2_lazy
 from packs.proc.processing_utils  import process_bin_WD1
 from packs.proc.calibration_utils    import calibrate
 from packs.core.core_utils        import check_test
@@ -36,7 +36,7 @@ def proc(config_file):
                         case 1:
                             process_bin_WD1(**conf_dict)
                         case 2:
-                            process_bin_WD2(**conf_dict)
+                            process_bin_WD2_lazy(**conf_dict)
                         case other:
                             raise RuntimeError(f"wavedump edition {other} decoding isn't currently implemented.")
                 else:
