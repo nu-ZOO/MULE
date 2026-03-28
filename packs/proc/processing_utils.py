@@ -235,6 +235,11 @@ def read_binary_lazy(file    :  BinaryIO,
     Reads the binary in with the expected format/offset, lazily,
     depending on counts to break the data up.
 
+    NOTE:
+    The counts are hardset to 1, making this function relatively inefficient.
+    In the future, the logic should be revised to allow `np.fromfile`'s count
+    value to be set based on optimal read-in speed. The logic of the WD2 function
+    will have to accomodate this when indexing the files.
 
     Parameters
     ----------
@@ -252,11 +257,11 @@ def read_binary_lazy(file    :  BinaryIO,
 
     '''
     # initialise data to start the loop
-    data = (np.fromfile(file, dtype=wdtype, count = counts))
+    data = (np.fromfile(file, dtype=wdtype, count = 1))
     while len(data) != 0:
         yield (True, data)
         # ensure data is loaded in after the yield, so the while check is done
-        data = (np.fromfile(file, dtype=wdtype, count = counts))
+        data = (np.fromfile(file, dtype=wdtype, count = 1))
     # yield 1 when finished
     print('Processing Finished!')
     yield (False, np.zeros(shape = (1,)))
