@@ -12,6 +12,7 @@ import h5py
 from typing import BinaryIO
 from typing import Generic
 from typing import Optional
+from typing import Generator
 
 # imports start from MULE/
 from packs.core.core_utils import flatten
@@ -226,6 +227,39 @@ def process_header(file_path  :  str,
     # collect data types
     wdtype = types.generate_wfdtype(channels, samples)
     return wdtype, samples, sampling_period, channels
+
+
+def read_binary_lazy(file    :  BinaryIO,
+                     wdtype  :  np.dtype) -> Generator:
+    '''
+    Reads the binary in with the expected format/offset, lazily,
+    depending on counts to break the data up.
+
+
+    Parameters
+    ----------
+
+        file    (BufferedReader)  :  Opened file
+        wdtype  (ndtype)         :  Custom data type for extracting information from
+                                     binary files
+        counts  (int)             :  How many events you want to read in. -1 sets it to take all events.
+        offset  (int)             :  Offset at which to start reading the data. Used for chunking purposes
+                                     and so should by default be set to zero if not chunking.
+
+    Returns
+    -------
+        data  (ndarray)  :  Unformatted data from binary file
+
+    '''
+    # initialise data to start the loop
+    data = (np.fromfile(file, dtype=wdtype, count = counts))
+    while len(data) != 0:
+        yield (True, data)
+        # ensure data is loaded in after the yield, so the while check is done
+        data = (np.fromfile(file, dtype=wdtype, count = counts))
+    # yield 1 when finished
+    print('Processing Finished!')
+    yield (False, np.zeros(shape = (1,)))
 
 
 def read_binary(file    :  BinaryIO,
