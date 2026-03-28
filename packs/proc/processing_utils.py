@@ -194,9 +194,9 @@ def process_header(file_path  :  str,
 
     # open file
     if not os.path.exists(file_path):
-        raise FileNotFoundError(2, 'Path or file not found', file_path)    
+        raise FileNotFoundError(2, 'Path or file not found', file_path)
 
-    with open(file_path, 'rb') as file: 
+    with open(file_path, 'rb') as file:
 
         event_number, timestamp, samples, sampling_period = read_defaults_WD2(file, byte_order)
         # attempt to read channels
@@ -429,7 +429,6 @@ def process_event_lazy_WD1(file_object  :  BinaryIO,
 
     # header to check against
     sanity_header = header.copy()
-
     # continue only if data exists
     while len(header) > 0:
 
@@ -439,10 +438,8 @@ def process_event_lazy_WD1(file_object  :  BinaryIO,
 
         # collect waveform, no of samples and timestamp
         yield (np.fromfile(file_object, dtype = np.dtype('<H'), count = event_size), event_size, header[-1])
-
         # collect next header
         header = np.fromfile(file_object, dtype = 'i', count = 6)
-
         # check if header has correct number of elements and correct information ONCE.
         if sanity_header is not None:
             if len(header) == 6:
@@ -504,10 +501,8 @@ def process_bin_WD1(file_path    :  str,
         with writer(save_path, 'RAW', overwrite) as write:
 
             for i, (waveform, samples, timestamp) in enumerate(process_event_lazy_WD1(file, sample_size)):
-
                 if (i % print_mod == 0) and (print_mod != -1):
                     print(f"Event {i}")
-
                 # enforce stucture upon data
                 e_dtype  = types.event_info_type
                 wf_dtype = types.rwf_type_WD1(samples)
