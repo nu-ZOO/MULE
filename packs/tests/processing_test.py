@@ -266,3 +266,33 @@ def test_lazy_loading_short_header_WD1(MULE_dir):
     with open(data_path, 'rb') as file:
         a = process_event_lazy_WD1(file, sample_size = 2)
         next(a)
+
+
+@mark.parametrize("config, inpt, output, comparison", [("process_lecroy_csv.conf", "one_channel_LECROYWS4054HD.csv", "one_channel_LECROYWS4054HD_tmp.h5", "one_channel_LECROYWS4054HD.h5")])
+def test_LECROYWS4054HD_decode_produces_expected_output(config, inpt, output, comparison, MULE_dir, data_dir, tmp_path):
+    '''
+    This test will be merged with test_decode_produces_expected_output() and test_WD1_decode_produces_expected_output()
+    '''
+    # ensure path is correct
+    file_path       = data_dir + inpt
+    save_path       = tmp_path / output # PosixPaths behave differently
+    comparison_path = data_dir + comparison
+    config_path     = data_dir + "configs/" + config
+    temp_config = str(tmp_path / config)
+
+    # rewrite paths to files
+    cnfg = configparser.ConfigParser()
+    cnfg.read(config_path)
+    cnfg.set('required', 'file_path', "'" +  file_path + "'") # need to add comments around for config reasons
+    cnfg.set('required', 'save_path', f"'{save_path}'") # PosixPaths behave differently
+
+    with open(temp_config, 'w') as cfgfile:
+        cnfg.write(cfgfile)
+
+    # run processing pack decode
+    run_pack = ['python3', MULE_dir + "/bin/mule", "proc", temp_config]
+    subprocess.run(run_pack)
+
+    # the event info can be read out like a normal h5, the RWF cannot due to how they're structured
+    assert pd.read_hdf(save_path, 'RAW/event_info').equals(pd.read_hdf(comparison_path, 'RAW/event_info'))
+    assert [x for x in reader(save_path, 'RAW', 'rwf')] == [x for x in reader(comparison_path, 'RAW', 'rwf')]
