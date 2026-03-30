@@ -564,3 +564,37 @@ def process_bin_WD2(file_path  :  str,
                 save_data(event_info, rwf, save_path, counter)
             counter += (counts)
 
+def read_header(file_obj  :   BinaryIO):
+    '''
+    Reads and parses the header of an oscilloscope binary file, extracting
+    metadata such as the number of segments, segment size, and time step.
+
+    Parameters
+    ----------
+    file_obj : BinaryIO
+        Opened binary file object pointing to the start of the oscilloscope data file.
+
+    Returns
+    -------
+    tuple[np.ndarray, int, int]
+        A tuple containing:
+        - dt : np.ndarray
+            Time step between consecutive samples, computed as np.diff([time2, time1]).
+        - segments : int
+            Number of waveform segments (waveforms) stored in the file.
+        - segment_size : int
+            Number of samples per segment.
+    '''
+    
+    oscilloscope_model = int((next(file_obj).split(','))[1])
+    file_heading = next(file_obj).split(',')
+    segments = int(file_heading[1])
+    segment_size = int(file_heading[3])   
+    evt_info_heading = next(file_obj).split(',')
+    for evt_info_line_idx in range(segments):
+        evt_info_line = next(file_obj).split(',')
+    data_heading = next(file_obj).split(',')  
+    time1 = float((next(file_obj).split(','))[0])
+    time2 = float((next(file_obj).split(','))[0])
+
+    return ((np.diff([time1, time2]))[0], segments, segment_size)
