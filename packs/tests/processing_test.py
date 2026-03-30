@@ -17,6 +17,7 @@ from packs.proc.processing_utils   import process_bin_WD1
 from packs.proc.processing_utils   import read_defaults_WD2
 from packs.proc.processing_utils   import process_header
 from packs.proc.processing_utils   import read_binary
+from packs.proc.processing_utils   import read_binary_lazy
 from packs.proc.processing_utils   import format_wfs
 from packs.proc.processing_utils   import check_save_path
 from packs.proc.processing_utils   import save_data
@@ -59,7 +60,7 @@ def test_header_components_read_as_expected(wd2_3ch_bin):
 
 
 def test_nonexistent_file_raises_error():
-    
+
     fake_path = '/this/path/does/not/exist.bin'
 
     with raises(FileNotFoundError):
@@ -147,7 +148,7 @@ def test_formatting_works(data_dir, wd2_3ch_bin):
 def test_save_path_exists():
 
     data_path = 'some/fake/path/three_channels_WD2.h5'
-    
+
     with raises(FileNotFoundError):
         check_save_path(data_path, overwrite = False)
 
@@ -266,3 +267,35 @@ def test_lazy_loading_short_header_WD1(MULE_dir):
     with open(data_path, 'rb') as file:
         a = process_event_lazy_WD1(file, sample_size = 2)
         next(a)
+
+
+@mark.parametrize("inpt", [("one_channel_WD2.bin"),("three_channels_WD2.bin")])
+def test_lazy_eager_WD2_match(data_dir, inpt):
+    '''
+    test to ensure that lazy and eager WD2
+    provide the same result
+    '''
+
+    # how many events are we looking at?
+    counts = 30
+
+    # extract directory
+    file_path = data_dir + inpt
+
+    # collect header info
+    wdtype, samples, sampling_period, channels = process_header(file_path)
+
+    # collect lazy data
+    lazy_data = []
+    with open(file_path) as f:
+        binary_lazy_readout   = read_binary_lazy(f, wdtype)
+        for i in range(0,counts):
+            _, lazy_wf            = next(binary_lazy_readout)
+            lazy_data.append(lazy_wf)
+
+    # open eager data
+    with open(file_path) as f:
+        data                  = read_binary     (f, wdtype, counts)
+
+    for i in range(0,counts):
+        assert data[i] == lazy_data[i]
