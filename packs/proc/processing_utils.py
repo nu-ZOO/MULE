@@ -598,3 +598,18 @@ def read_header(file_obj  :   BinaryIO):
     time2 = float((next(file_obj).split(','))[0])
 
     return ((np.diff([time1, time2]))[0], segments, segment_size)
+
+def get_batch(reader    :   '_csv.reader',
+              batch_size    :   int):
+    '''
+    Generator that outputs a list of all the second elements of a row for each batch
+    then goes to the next row
+    Parameters
+    ----------
+        reader  (_csv.reader)  :  Opened file object
+
+    Returns
+    -------
+        data  (generator)  :  Generator object containing one waveforms's worth of data
+    '''
+    return [float(row[1]) for _ in range(batch_size) if (row := next(reader, None))]
