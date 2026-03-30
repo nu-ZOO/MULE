@@ -648,3 +648,48 @@ def process_event_lazy_lecroy(file_obj  :   BinaryIO):
         wf_num += 1
     
     print("Processing Finished!")
+
+def process_csv_lecroy(file_path    :  str,
+                save_path    :  str,
+                overwrite    :  Optional[bool] = False,
+                print_mod    :  Optional[int] = -1):   
+    """
+    Process a Lecroy CSV waveform file and write the parsed events to a structured output file.
+
+    Reads waveform data lazily from a Lecroy-format CSV, structures each event into
+    typed NumPy arrays, and writes them incrementally to the output file using a
+    context-managed writer.
+    Parameters
+    ----------
+        file_path  (str) : Path to the input Lecroy CSV file to be read.
+        save_path  (str) : Path to the output file where processed waveform data will be saved.
+        overwrite  (bool) : If True, overwrite the output file if it already exists. Defaults to False.
+        print_mod  (int) : Print progress every N events. Set to -1 to disable printing. Defaults to -1.
+    Returns
+    -------
+        None
+    """
+    
+    with open(file_path, 'r') as file_object:
+        (sample_size, num_of_events, samples) = read_header(file_object)    
+    print('wfs: ', num_of_events, '; samples: ', samples, '; sample size: ', sample_size)  
+
+    with open(file_path, 'r') as file_object:
+
+        with writer(save_path, 'RAW', overwrite) as write:
+
+            for i, (waveform, timestamp) in enumerate(process_event_lazy_lecroy(file_object)):
+
+                if (i % print_mod == 0) and (print_mod != -1):
+                    print(f"Event {i}")
+
+                # enforce stucture upon data
+                e_dtype  = types.event_info_type
+                wf_dtype = types.rwf_type(samples)
+
+                event_info = np.array((i, timestamp, samples, sample_size, 1), dtype = e_dtype)
+                waveforms  = np.array((i, 0, waveform), dtype = wf_dtype)
+
+                # add data to df lazily
+                write('event_info', event_info, (True, num_of_events, i))
+                write('rwf', waveforms, (True, num_of_events, i))
