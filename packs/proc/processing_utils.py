@@ -12,6 +12,7 @@ import h5py
 from typing import BinaryIO
 from typing import Generic
 from typing import Optional
+from typing import Generator
 
 # imports start from MULE/
 from packs.core.core_utils import flatten
@@ -193,9 +194,9 @@ def process_header(file_path  :  str,
 
     # open file
     if not os.path.exists(file_path):
-        raise FileNotFoundError(2, 'Path or file not found', file_path)    
+        raise FileNotFoundError(2, 'Path or file not found', file_path)
 
-    with open(file_path, 'rb') as file: 
+    with open(file_path, 'rb') as file:
 
         event_number, timestamp, samples, sampling_period = read_defaults_WD2(file, byte_order)
         # attempt to read channels
@@ -226,6 +227,44 @@ def process_header(file_path  :  str,
     # collect data types
     wdtype = types.generate_wfdtype(channels, samples)
     return wdtype, samples, sampling_period, channels
+
+
+def read_binary_lazy(file    :  BinaryIO,
+                     wdtype  :  np.dtype) -> Generator:
+    '''
+    Reads the binary in with the expected format/offset, lazily,
+    depending on counts to break the data up.
+
+    NOTE:
+    The counts are hardset to 1, making this function relatively inefficient.
+    In the future, the logic should be revised to allow `np.fromfile`'s count
+    value to be set based on optimal read-in speed. The logic of the WD2 function
+    will have to accomodate this when indexing the files.
+
+    Parameters
+    ----------
+
+        file    (BufferedReader)  :  Opened file
+        wdtype  (ndtype)         :  Custom data type for extracting information from
+                                     binary files
+        counts  (int)             :  How many events you want to read in. -1 sets it to take all events.
+        offset  (int)             :  Offset at which to start reading the data. Used for chunking purposes
+                                     and so should by default be set to zero if not chunking.
+
+    Returns
+    -------
+        data  (ndarray)  :  Unformatted data from binary file
+
+    '''
+    # initialise data to start the loop
+    data = (np.fromfile(file, dtype=wdtype, count = 1))
+    while len(data) != 0:
+        yield (True, data)
+        # ensure data is loaded in after the yield, so the while check is done
+        data = (np.fromfile(file, dtype=wdtype, count = 1))
+    # yield 1 when finished
+    print('Processing Finished!')
+    yield (False, np.zeros(shape = (1,)))
 
 
 def read_binary(file    :  BinaryIO,
@@ -395,7 +434,6 @@ def process_event_lazy_WD1(file_object  :  BinaryIO,
 
     # header to check against
     sanity_header = header.copy()
-
     # continue only if data exists
     while len(header) > 0:
 
@@ -405,10 +443,8 @@ def process_event_lazy_WD1(file_object  :  BinaryIO,
 
         # collect waveform, no of samples and timestamp
         yield (np.fromfile(file_object, dtype = np.dtype('<H'), count = event_size), event_size, header[-1])
-
         # collect next header
         header = np.fromfile(file_object, dtype = 'i', count = 6)
-
         # check if header has correct number of elements and correct information ONCE.
         if sanity_header is not None:
             if len(header) == 6:
@@ -470,10 +506,8 @@ def process_bin_WD1(file_path    :  str,
         with writer(save_path, 'RAW', overwrite) as write:
 
             for i, (waveform, samples, timestamp) in enumerate(process_event_lazy_WD1(file, sample_size)):
-
                 if (i % print_mod == 0) and (print_mod != -1):
                     print(f"Event {i}")
-
                 # enforce stucture upon data
                 e_dtype  = types.event_info_type
                 wf_dtype = types.rwf_type_WD1(samples)
@@ -491,6 +525,70 @@ def process_bin_WD1(file_path    :  str,
                 write('event_info', event_info, (True, num_of_events, i))
                 write('rwf', waveforms, (True, num_of_events, i))
 
+
+
+def process_bin_WD2_lazy(file_path  :  str,
+                    save_path  :  str,
+                    overwrite  :  Optional[bool] = False,
+                    print_mod  :  Optional[int]  = -1):
+
+    '''
+    WAVEDUMP 2: Takes a binary file and outputs the containing waveform information in a h5 file.
+
+    For particularly large waveforms/number of events. You can 'chunk' the data such that
+    each dataset holds `counts` events.
+
+    Parameters
+    ----------
+
+        file_path  (str)   :  Path to binary file
+        save_path  (str)   :  Path to saved file
+        overwrite  (bool)  :  Boolean for overwriting pre-existing files
+        print_mod  (int)   :  Readout frequency for number of events, -1 implies no readout
+
+    Returns
+    -------
+        None
+    '''
+
+    # Ensure save path is clear
+    save_path = check_save_path(save_path, overwrite)
+    print(f'\nData input   :  {file_path}\nData output  :  {save_path}')
+
+    # collect header info
+    wdtype, samples, sampling_period, channels = process_header(file_path)
+
+   # create header length (bytes) for processing
+    if channels == 1:
+        header_size = 24
+    else:
+        header_size = 28
+
+    # open file for reading
+    with open(file_path, 'rb') as file:
+        with writer(save_path, 'RAW', overwrite) as write:
+
+            for i, (flag, array) in enumerate(read_binary_lazy(file, wdtype)):
+
+                if (i % print_mod == 0) and (print_mod != -1):
+                    print(f"Event {i}")
+
+                # catch, once done, rwf should be empty
+                if flag:
+
+                    evt_info, rwf = format_wfs(array, wdtype, samples, channels)
+
+
+                    # first run-through, collect the header information to extract table size
+                    if i == 0:
+                        file_size     = os.path.getsize(file_path)
+                        waveform_size = ((samples * channels * 4 ) + header_size) # can't remember why *2, will need to test this
+                        num_of_events = int(file_size / waveform_size)
+
+                    write('event_info', evt_info, (True, num_of_events, i))
+                    # writer only takes one row at a time, can't broadcast all three at once
+                    for j, wfs in enumerate(rwf):
+                        write('rwf',        wfs,      (True, num_of_events * channels, i + ((channels-1)*i) + j))
 
 def process_bin_WD2(file_path  :  str,
                     save_path  :  str,
