@@ -30,36 +30,57 @@ This file holds relevant functions for processing waveforms.
 """
 
 
-def subtract_baseline(y_data : np.ndarray,
-                       sub_type : Optional[str] = 'median') -> (float):
+def subtract_baseline(y_data     :  np.ndarray,
+                      sub_type   :  Optional[str] = 'median') -> int:
     '''
-    determines the value that should be subtracted to produce baseline using the mean
-    or median of a defined window of the waveform data
+    Determines the value that should be subtracted to produce baseline
+    using a few differing methods depending on user input:
+        - mean
+        - median
+
+    Parameters
+    ----------
+
+    y_data   (np.array)  :  Array of waveform information
+    sub_type (str)       :  Subtraction type, median or mean
+
+
+    Returns
+    -------
+
+    (int)                :  Value to subtract off waveform
+
     '''
 
-    # MEAN METHOD
-    # add all ADC values and divide by length (rough), also remove negatives
     match sub_type:
         case 'mean':
-            total = (np.sum(y_data)/len(y_data))
+            total = np.mean(y_data)
 
         case 'median':
             total = np.median(y_data)
 
-        case 'none':
-            total = 0
-
         case _:
-            raise ValueError(
-                f"Invalid sub_type '{sub_type}'. Expected 'mean' or 'median' or 'none'."
-            )
+            print("Please input a baseline method, exiting...")
+            total = 0
 
     return total
 
-def find_nearest(array : np.ndarray,
-                 value : float) -> (float):
+def find_nearest(array  :  np.ndarray,
+                 value  :  (int | float)) -> (int | float):
     '''
     Finds the array value closest to the provided value
+
+    Parameters
+    ----------
+
+    array  (np.array)     :  Array of values
+    value  (int | float)  :  Value to match within the array
+
+    Returns
+    -------
+
+    (int | float)         :  Closest number to value
+
     '''
     idx = np.searchsorted(array, value, side="left")
     if idx > 0 and (idx == len(array) or m.fabs(value - array[idx-1]) < m.fabs(value - array[idx])):
@@ -67,19 +88,25 @@ def find_nearest(array : np.ndarray,
     else:
         return array[idx]
 
-def collect_index(time : np.ndarray,
-                  value : float) -> (int):
+def collect_index(time  : np.ndarray,
+                  value : (int | float)) -> int:
     '''
     Collects the array index corresponding to a certain time value
 
-    Args:
-        time        (np.array)        :     Time array
-        value       (float/int)       :     Value that you wish to locate the index of
+    Parameters
+    ----------
+
+    time   (np.array)   :  Time array
+    value  (float/int)  :  Value that you wish to locate the index of
+
+    Returns
+    -------
+
+    (int)                   :  Index matching value
+
     '''
-    
     val = find_nearest(time, value)
     index = np.where(time == val)[0]
-
     if len(index == 1):
         return index[0]
     else:
