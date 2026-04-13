@@ -2,6 +2,7 @@ import io
 import sys
 import os
 import math   as m
+from unittest import case
 import numpy  as np
 import tables as tb
 import pandas as pd
@@ -31,7 +32,7 @@ This file holds relevant functions for processing waveforms.
 
 
 def subtract_baseline(y_data     :  np.ndarray,
-                      sub_type   :  Optional[str] = 'median') -> int:
+                      sub_type   :  Optional[str] = 'median') -> (int | float):
     '''
     Determines the value that should be subtracted to produce baseline
     using a few differing methods depending on user input:
@@ -59,10 +60,13 @@ def subtract_baseline(y_data     :  np.ndarray,
         case 'median':
             total = np.median(y_data)
 
-        case _:
-            print("Please input a baseline method, exiting...")
+        case 'none':
             total = 0
 
+        case _:
+            raise ValueError(
+                f"Invalid sub_type '{sub_type}'. Expected 'mean' or 'median' or 'none'."
+            )
     return total
 
 def find_nearest(array  :  np.ndarray,
