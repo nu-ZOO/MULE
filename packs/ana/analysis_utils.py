@@ -59,7 +59,7 @@ def remove_secondaries(wf_data : np.ndarray,
 def suppress_baseline(wf_data : np.ndarray,
                         threshold : int) -> (np.ndarray):
     '''
-    Supresses baseline values, anything below the threshold (including negatives from undershoot) gets set to zero
+    Suppresses baseline values, anything below the threshold (including negatives from undershoot) gets set to zero
 
     Params:
     wf_data (array)                 :                   waveform data
@@ -156,7 +156,7 @@ def average_waveforms(files : list,
                        suppression_threshold: Optional[int] = 10) -> (np.ndarray):
     '''
     Averages waveforms. Takes in multiple h5 files, splits the data into chunks for processing ease and analyses them. The chunks are passed into cook_data,
-      which flips polarity, subtracts baseline, removes events with large secondary peaks and supresses baseline. This function then averages this data to form a single
+      which flips polarity, subtracts baseline, removes events with large secondary peaks and suppresses baseline. This function then averages this data to form a single
       average waveform.
 
     Params:
@@ -168,6 +168,7 @@ def average_waveforms(files : list,
     baseline_mode (str)                 :                   method of baseline subtraction
     verbose (int)                       :                   amount of live infor wanted, 0 for none, 1 for words, 2 for plots
     peak_threshold (int)                :                   amplitude of secondary peaks rejected
+    suppression_threshold (int)         :                   amplitude below which is set to zero for baseline suppression
 
     Returns:
     average_waveform (array)            :                   data for final average waveform
