@@ -17,7 +17,7 @@ def ana(config_file : str) -> (np.ndarray):
     if isinstance(conf_args['files'], list):
         print('Averaging waveform....')
         avgwf = average_waveforms(**arg_dict)
-        save_path = check_save_path(conf_args['save path'], conf_args['overwrite'])
+        save_path = check_save_path(conf_args['save_path'], conf_args['overwrite'])
 
         with h5py.File(save_path, 'w') as f:     # Save as a h5
             f.create_dataset('Average_waveform', data=avgwf)
