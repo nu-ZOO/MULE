@@ -8,7 +8,7 @@ from hypothesis import given, strategies as st
 from hypothesis import settings
 from hypothesis import Verbosity
 
-from packs.proc.waveform_utils import extract_peak, collect_sidebands, collect_integration_window, calibrate
+from packs.proc.calibration_utils import extract_peak, collect_sidebands, collect_integration_window, calibrate
 from packs.core.io             import reader
 from packs.core.core_utils     import PeakRangeError
 
