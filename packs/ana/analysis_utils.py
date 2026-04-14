@@ -33,7 +33,9 @@ def remove_secondaries(wf_data : np.ndarray,
     Returns:
     wf_data (array)                 :                   none rejected waveform
     '''
-    after_window_wf = wf_data[collect_index(time, WINDOW_END) : len(wf_data)-1] # Making an array of the data after WINDOW_END so we can look for peaks there
+    after_window_wf = wf_data[collect_index(time, WINDOW_END) : len(wf_data)] # Making an array of the data after WINDOW_END so we can look for peaks there
+    if len(after_window_wf) == 0:
+        return wf_data
     if after_window_wf is not None:   
         second_peak = np.max(after_window_wf)
         if second_peak > threshold:
