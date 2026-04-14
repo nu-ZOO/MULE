@@ -1,5 +1,6 @@
 from packs.ana.analysis_utils import cook_data, suppress_baseline, average_waveforms, remove_secondaries, window_overlap_check
 from packs.core.waveform_utils import collect_index, subtract_baseline, find_nearest
+from packs.ana.ana import ana
 import numpy as np
 import h5py
 import pytest
@@ -343,3 +344,58 @@ def test_wf_window_mismatch(tmp_path): # checks that skipping mismatch works, wf
         suppression_threshold=0,    # nothing should be suppressed
     )
     np.testing.assert_array_equal(x, y)
+
+
+def test_ana_integration_conf_file(tmp_path):
+
+    wf = np.ones((1, 100))
+    fake_input = make_temp_h5(tmp_path, wf, "test_waveforms.h5")
+
+    config_text = f"""
+    [required]
+
+    files = [r'{fake_input}']
+
+    window_args = {{'WINDOW_START': 1,
+        'WINDOW_END': 2,
+        'BASELINE_POINT_1': 10,
+        'BASELINE_POINT_2': 30,
+        'BASELINE_RANGE_1': 2,
+        'BASELINE_RANGE_2': 2}}
+
+    bin_size = 4
+    chunk_size = 5
+    negative = False
+    baseline_mode = 'none'
+    verbose = 1
+    peak_threshold = 1000
+    suppression_threshold = 0
+
+    overwrite = True
+    save_path = r'{tmp_path / "tmp" / "test.h5"}'
+    """
+
+    (tmp_path / "tmp").mkdir()
+    config_file = tmp_path / "config.conf"
+    config_file.write_text(config_text)
+
+
+    ana(str(config_file))
+
+
+    out_file = tmp_path / "tmp" / "test.h5"
+
+    expected = np.ones(100)
+
+    assert out_file.exists()
+
+    with h5py.File(out_file, "r") as f:
+        assert "Average_waveform" in f
+
+        data = f["Average_waveform"][:]
+
+        assert isinstance(data, np.ndarray)
+        assert data.size > 0
+        assert np.isfinite(data).all()
+        assert data.shape == expected.shape
+        np.testing.assert_allclose(data, expected, rtol=1e-6)
