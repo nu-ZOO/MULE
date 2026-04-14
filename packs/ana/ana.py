@@ -12,13 +12,30 @@ def ana(config_file : str) -> (np.ndarray):
         return
     
     conf_args = read_config_file(config_file)
-    arg_dict = dict(list(conf_args.items())[:-1])
-    window_overlap_check(arg_dict)
+    window_args = conf_args["window_args"]
 
-    if isinstance(conf_args['files'], list):
-        print('Averaging waveform....')
-        avgwf = average_waveforms(**arg_dict)
-        save_path = check_save_path(conf_args['save_path'], conf_args['overwrite'])
+    waveform_args = {
+        "files": conf_args["files"],
+        "bin_size": conf_args["bin_size"],
+        "window_args": window_args,
+        "chunk_size": conf_args.get("chunk_size", 5),
+        "negative": conf_args.get("negative", True),
+        "baseline_mode": conf_args.get("baseline_mode", "median"),
+        "verbose": conf_args.get("verbose", 1),
+        "peak_threshold": conf_args.get("peak_threshold", 1000),
+        "suppression_threshold": conf_args.get("suppression_threshold", 10),
+    }
+    window_overlap_check(window_args)
+
+    if isinstance(conf_args["files"], list):
+        print("Averaging waveform....")
+
+        avgwf = average_waveforms(**waveform_args)
+
+        save_path = check_save_path(
+            conf_args["save_path"],
+            conf_args["overwrite"]
+        )
 
         with h5py.File(save_path, 'w') as f:     # Save as a h5
             f.create_dataset('Average_waveform', data=avgwf)
