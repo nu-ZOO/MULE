@@ -15,6 +15,7 @@ def ana(config_file : str) -> (np.ndarray):
     window_args = conf_args["window_args"]
 
     save_path = conf_args.pop('save_path')
+    save_path = os.path.abspath(save_path) # make the save path an absolute path
     overwrite = conf_args.pop('overwrite')
 
     window_overlap_check(window_args)
@@ -23,7 +24,7 @@ def ana(config_file : str) -> (np.ndarray):
         print("Averaging waveform....")
 
         avgwf = average_waveforms(**conf_args)
-
+    
         checked_save_path = check_save_path(
             save_path,
             overwrite
