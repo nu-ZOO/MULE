@@ -228,7 +228,7 @@ def average_waveforms(files : list,
     del x
     return average_waveform
 
-def window_overlap_check(window_args : dict):
+def window_overlap_check(window_args: dict):
     '''
     Checks that window args dont overlap with one another
     
@@ -241,16 +241,35 @@ def window_overlap_check(window_args : dict):
     BASELINE_POINT_2 = window_args['BASELINE_POINT_2']
     BASELINE_RANGE_1 = window_args['BASELINE_RANGE_1']
     BASELINE_RANGE_2 = window_args['BASELINE_RANGE_2']
-    # make sure all window arg values are greater than zero
-    if WINDOW_START<0 or WINDOW_END<0 or BASELINE_POINT_1-BASELINE_RANGE_1/2<0 or BASELINE_POINT_2-BASELINE_RANGE_2<0:
+
+    # Define intervals
+    w_start, w_end = WINDOW_START, WINDOW_END
+
+    b1_start = BASELINE_POINT_1 - BASELINE_RANGE_1 / 2
+    b1_end   = BASELINE_POINT_1 + BASELINE_RANGE_1 / 2
+
+    b2_start = BASELINE_POINT_2 - BASELINE_RANGE_2 / 2
+    b2_end   = BASELINE_POINT_2 + BASELINE_RANGE_2 / 2
+
+    # Check for negative values
+    if (w_start < 0 or w_end < 0 or
+        b1_start < 0 or b1_end < 0 or
+        b2_start < 0 or b2_end < 0):
         raise ValueError('window args include values that are negative')
-    # See if baselines overlap with window
-    if BASELINE_POINT_1-BASELINE_RANGE_1/2 < WINDOW_END or BASELINE_POINT_2-BASELINE_RANGE_2/2 < WINDOW_END:
-        raise ValueError('error in window overlap')
-    # See if baselines overlap with each other
-    y = max(BASELINE_POINT_1-BASELINE_RANGE_1/2,BASELINE_POINT_2-BASELINE_RANGE_2/2) < min(BASELINE_POINT_1+BASELINE_RANGE_1/2,BASELINE_POINT_2+BASELINE_RANGE_2/2)
-    if y:
-        raise ValueError('error in baseline overlap')
+
+    # Check window validity
+    if w_start >= w_end:
+        raise ValueError('WINDOW_START must be less than WINDOW_END')
+
+    # Check baseline overlap with window
+    if ((w_start < b1_end and b1_start < w_end) or
+        (w_start < b2_end and b2_start < w_end)):
+        raise ValueError('error as baseline and window overlap')
+
+    # Check baselines overlap each other
+    if (b1_start < b2_end and b2_start < b1_end):
+        raise ValueError('error as baselines overlap')
+
     return
 
 def window_wf_check(wf : np.ndarray,
