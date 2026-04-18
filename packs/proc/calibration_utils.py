@@ -22,101 +22,17 @@ from typing import List
 
 from packs.core.io import writer, reader, check_chunking, check_rows
 from packs.types import types
+from packs.core.waveform_utils import collect_index, subtract_baseline
 
 from tqdm import tqdm
 
 from packs.core.core_utils import PeakRangeError
 
 """
-Waveform utilities
+Calibration utilities
 
 This file holds relevant functions for processing waveforms.
 """
-
-# relevant functions
-def subtract_baseline(y_data     :  np.ndarray,
-                      sub_type   :  Optional[str] = 'median') -> int:
-    '''
-    Determines the value that should be subtracted to produce baseline
-    using a few differing methods depending on user input:
-        - mean
-        - median
-
-    Parameters
-    ----------
-
-    y_data   (np.array)  :  Array of waveform information
-    sub_type (str)       :  Subtraction type, median or mean
-
-
-    Returns
-    -------
-
-    (int)                :  Value to subtract off waveform
-
-    '''
-
-    match sub_type:
-        case 'mean':
-            total = np.mean(y_data)
-
-        case 'median':
-            total = np.median(y_data)
-
-        case _:
-            print("Please input a baseline method, exiting...")
-            total = 0
-
-    return total
-
-
-def find_nearest(array  :  np.ndarray,
-                 value  :  (int | float)) -> (int | float):
-    '''
-    Finds the array value closest to the provided value
-
-    Parameters
-    ----------
-
-    array  (np.array)     :  Array of values
-    value  (int | float)  :  Value to match within the array
-
-    Returns
-    -------
-
-    (int | float)         :  Closest number to value
-
-    '''
-    idx = np.searchsorted(array, value, side="left")
-    if idx > 0 and (idx == len(array) or m.fabs(value - array[idx-1]) < m.fabs(value - array[idx])):
-        return array[idx-1]
-    else:
-        return array[idx]
-
-
-def collect_index(time  : np.ndarray,
-                  value : (int | float)) -> int:
-    '''
-    Collects the array index corresponding to a certain time value
-
-    Parameters
-    ----------
-
-    time   (np.array)   :  Time array
-    value  (float/int)  :  Value that you wish to locate the index of
-
-    Returns
-    -------
-
-    (int)                   :  Index matching value
-
-    '''
-    val = find_nearest(time, value)
-    index = np.where(time == val)[0]
-    if len(index == 1):
-        return index[0]
-    else:
-        raise Exception("Index collection found more than one value with the same value entered.\nAre you sure you entered the right array?")
 
 
 def integrate(y_data  :  np.ndarray) -> (int | float):
