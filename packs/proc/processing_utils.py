@@ -375,15 +375,13 @@ def check_save_path(save_path  :  str,
     return save_path
 
 
-def process_event_lazy_WD1(file_object  :  BinaryIO,
-                           sample_size  :  int):
+def process_event_lazy_WD1(file_object  :  BinaryIO):
 
     '''
     WAVEDUMP 1: Generator that outputs each event iteratively from an opened binary file
     Parameters
     ----------
         file_object  (obj)  :  Opened file object
-        sample_size  (int)  :  Time difference between each sample in waveform (2ns for V1730B digitiser)
     Returns
     -------
         data  (generator)  :  Generator object containing one event's worth of data
@@ -401,7 +399,7 @@ def process_event_lazy_WD1(file_object  :  BinaryIO,
 
         # alter header to match expected size
         header[0] = header[0] - 24
-        event_size = header[0] // sample_size
+        event_size = header[0] // 2 # number of samples in the event, as each sample is 2 bytes and header is 24 bytes
 
         # collect waveform, no of samples and timestamp
         yield (np.fromfile(file_object, dtype = np.dtype('<H'), count = event_size), event_size, header[-1])
