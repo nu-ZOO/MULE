@@ -375,15 +375,13 @@ def check_save_path(save_path  :  str,
     return save_path
 
 
-def process_event_lazy_WD1(file_object  :  BinaryIO,
-                           sample_size  :  int):
+def process_event_lazy_WD1(file_object  :  BinaryIO):
 
     '''
     WAVEDUMP 1: Generator that outputs each event iteratively from an opened binary file
     Parameters
     ----------
         file_object  (obj)  :  Opened file object
-        sample_size  (int)  :  Time difference between each sample in waveform (2ns for V1730B digitiser)
     Returns
     -------
         data  (generator)  :  Generator object containing one event's worth of data
@@ -401,7 +399,7 @@ def process_event_lazy_WD1(file_object  :  BinaryIO,
 
         # alter header to match expected size
         header[0] = header[0] - 24
-        event_size = header[0] // sample_size
+        event_size = header[0] // 2 # number of samples in the event, as each sample is 2 bytes and header is 24 bytes
 
         # collect waveform, no of samples and timestamp
         yield (np.fromfile(file_object, dtype = np.dtype('<H'), count = event_size), event_size, header[-1])
@@ -437,7 +435,7 @@ def process_bin_WD1(file_path    :  str,
     For particularly large waveforms/number of events. You can 'chunk' the data such that
     each dataset holds `counts` events.
     # Makeup of the header (header[n]) where n is:
-    # 0 - event size (ns in our case, with extra 24 samples)
+    # 0 - event size (in bytes, each sample is 2 bytes, with an extra 24 bytes for the header)
     # 1 - board ID
     # 2 - pattern (not sure exactly what this means)
     # 3 - board channel
@@ -448,7 +446,7 @@ def process_bin_WD1(file_path    :  str,
     ----------
         file_path    (str)   :  Path to binary file
         save_path    (str)   :  Path to saved file
-        sample_size  (int)   :  Size of each sample in an event (2 ns in the case of V1730B digitiser)
+        sample_size  (int)   :  Size of each sample in an event (default 2 ns in the case of V1730B digitiser)
         overwrite    (bool)  :  Boolean for overwriting pre-existing files
         print_mod    (int)   :  Readout frequency for number of events, -1 implies no readout
     Returns
@@ -469,7 +467,7 @@ def process_bin_WD1(file_path    :  str,
         # open writer object
         with writer(save_path, 'RAW', overwrite) as write:
 
-            for i, (waveform, samples, timestamp) in enumerate(process_event_lazy_WD1(file, sample_size)):
+            for i, (waveform, samples, timestamp) in enumerate(process_event_lazy_WD1(file)):
 
                 if (i % print_mod == 0) and (print_mod != -1):
                     print(f"Event {i}")
