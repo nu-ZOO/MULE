@@ -457,6 +457,7 @@ def process_bin_WD1(file_path    :  str,
 
     # lets build it here first and break it up later
     # destroy the group within the file if you're overwriting
+    save_path = os.path.abspath(save_path)
     save_path = check_save_path(save_path, overwrite)
     print(save_path)
 
