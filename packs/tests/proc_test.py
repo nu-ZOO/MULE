@@ -69,7 +69,7 @@ def test_changing_config_order(config, inpt, output, comparison, MULE_dir, data_
             reordered.write(f)
 
         # run processing pack decode
-        run_pack = ['python', MULE_dir + "/bin/mule", "proc", config_path]
+        run_pack = ['python3', MULE_dir + "/bin/mule", "proc", config_path]
         subprocess.run(run_pack)
         # check that the resulting dataframe is as expected
         assert load_evt_info(save_path).equals(load_evt_info(comparison_path))
