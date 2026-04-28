@@ -8,7 +8,7 @@ from pytest                import fixture
 from packs.core.io         import read_config_file
 
 
-@mark.parametrize("pack", ["acq", "proc", "tests"])
+@mark.parametrize("pack", ["acq", "proc", "tests", "ana"])
 def test_executable_runs_successfully(pack, MULE_dir):
     '''
     This test is made to check if the current executable method for

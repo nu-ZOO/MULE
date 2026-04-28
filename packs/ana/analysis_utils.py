@@ -1,0 +1,296 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import os
+from packs.core.waveform_utils    import collect_index , subtract_baseline
+from packs.core import io
+from typing import Optional
+
+"""
+Analysis utilities
+
+This file holds all the relevant functions for analysing data from h5 files.
+"""
+
+def remove_secondaries(wf_data : np.ndarray,
+                        threshold : int,
+                        time : np.ndarray,
+                        event_number : int, 
+                        verbose: int, 
+                        WINDOW_END: int) -> (np.ndarray):
+    '''
+    Removes events with large secondary peaks.
+    Any waveforms with peaks after the first signal (defined by WINDOW_END) that are larger than the threshold are identified and removed.
+    These removed waveforms can be plotted using verbose = 2.
+
+    Params:
+    threshold (int)                 :                   amplitude cutoff for second peak rejection
+    wf_data (array)                 :                   data of waveform
+    time (array)                    :                   the x axis / time data for the waveform
+    event_number (int)              :                   counter passed through to track events
+    verbose (str)                   :                   0 for no info, 1 for ommitted event number, 2 for plots of rejected event
+    WINDOW_END (float)              :                   end of the first signal
+    
+    Returns:
+    wf_data (array)                 :                   none rejected waveform
+    '''
+    after_window_wf = wf_data[collect_index(time, WINDOW_END) : len(wf_data)] # Making an array of the data after WINDOW_END so we can look for peaks there
+    if len(after_window_wf) == 0:
+        return wf_data
+    if after_window_wf is not None:   
+        second_peak = np.max(after_window_wf)
+        if second_peak > threshold:
+            if verbose > 1: 
+                plt.plot(time, wf_data)
+                plt.xlabel('Time (ns)')
+                plt.ylabel('ADCs')
+                plt.yscale('log')
+                plt.axhline(second_peak, 0, 2e5, c = 'r', ls = '--')
+                plt.axvline(WINDOW_END, c = 'r', ls = '--')
+                plt.title(f'Event {event_number} subtracted waveform')
+                plt.show()
+            if verbose > 0:
+                print(f'Event {event_number} excluded due to large secondary peak')
+            return None
+        else:
+            return wf_data
+    else:
+        print(f'Window_End input {WINDOW_END} is outside of waveform range')
+        return wf_data
+    
+
+def suppress_baseline(wf_data : np.ndarray,
+                        threshold : int) -> (np.ndarray):
+    '''
+    Suppresses baseline values, anything below the threshold (including negatives from undershoot) gets set to zero
+
+    Params:
+    wf_data (array)                 :                   waveform data
+    threshold (int)                 :                   upper cutoff for zero supression
+    
+    Returns:
+    wf_data (array)                 :                   waveform data with suppressed baseline
+    '''
+    wf_data[wf_data < threshold] = 0
+    return wf_data
+
+def cook_data(data : np.ndarray,
+                bin_size : int,
+                window_args : dict,
+                chunk_size : int,
+                chunk_number : int,
+                negative : Optional[bool] = False,
+                baseline_mode : Optional[str] = 'median',
+                verbose : Optional[int] = 1,
+                peak_threshold : Optional[int] = 1000,
+                suppression_threshold : Optional[int] = 10) -> (np.ndarray):
+    '''
+    Takes in waveform data and outputs baseline subtracted, baseline suppressed, processed waveforms.
+
+    Args:
+        data          (array)      :       Waveform data
+        bin_size      (int)         :       Size of time bins within data
+        window_args   (dict)          :       Dictionary of window values for use in processing
+        chunk_size    (int)           :       Size of the 'chunk' of waveform used to ease processing
+        chunk_number  (int)           :       Number passed through to track iterations, acts as a label for the chunk
+        negative      (bool)          :       Is the waveform negative?
+        baseline_mode (string)        :       Mode of the baseline subtraction (median, mode, mean, etc.)
+        verbose       (int)           :       Print info: 0 is nothing, 1 is text only (e.g. rejected waveform numbers), 2 includes plots
+        peak_threshold (int)        :       Threshold for removing peaks in ADCs
+
+    Returns:
+        results(
+            sub_data   (array)        :       Baseline subtracted waveforms
+        )
+    '''
+    
+    # Unpack window arguments
+    WINDOW_START     = window_args['WINDOW_START']
+    WINDOW_END       = window_args['WINDOW_END']
+    BASELINE_POINT_1 = window_args['BASELINE_POINT_1']
+    BASELINE_POINT_2 = window_args['BASELINE_POINT_2']
+    BASELINE_RANGE_1 = window_args['BASELINE_RANGE_1']
+    BASELINE_RANGE_2 = window_args['BASELINE_RANGE_2']
+
+    # Define the time array
+    time = np.linspace(0, len(data[0]), num=len(data[0]), dtype=int) * bin_size
+
+    wf_data = [] # Empty array for the waveform data to be put in
+    
+    for i, wf in enumerate(data):  # Process each waveform in the chunk individually
+        event_number = i + chunk_size * chunk_number # track the waveform number and the chunk number to keep track of the event number
+        if negative:
+            wf = -wf # Negative flip
+        # Check that window args agree with wf
+        if window_wf_check(wf, window_args):
+            # ### Baseline subtraction ###
+            # Collect the baselisune region data (sidebands)
+            bl_range_1 = [collect_index(time, BASELINE_POINT_1 - BASELINE_RANGE_1), collect_index(time, BASELINE_POINT_1 + BASELINE_RANGE_1)]
+            bl_range_2 = [collect_index(time, BASELINE_POINT_2 - BASELINE_RANGE_2), collect_index(time, BASELINE_POINT_2 + BASELINE_RANGE_2)]
+            y_sideband = wf[bl_range_1[0]:bl_range_1[1]]
+            y_sideband = list(y_sideband) + list(wf[bl_range_2[0]:bl_range_2[1]])
+
+            # Subtract the baseline value from the waveform
+            sub_wf = wf - subtract_baseline(y_sideband, sub_type=baseline_mode)
+        
+            # Suppress baseline
+            sup_wf = suppress_baseline(sub_wf, suppression_threshold)
+        
+            # Remove secondary alphas
+            final_wf = remove_secondaries(sup_wf, peak_threshold, time, event_number, verbose, WINDOW_END)
+            if final_wf is None:
+                continue
+        else:
+            print(f"Waveform {event_number} didn't match window arguments, hence not included")
+            continue
+        wf_data.append(final_wf)
+
+    # Return subtracted waveforms
+    return wf_data
+
+def average_waveforms(files : list,
+                       bin_size : int,
+                       window_args : dict,
+                       chunk_size : Optional[int] = 5,
+                       negative : Optional[bool] = True, 
+                       baseline_mode: Optional[str] = 'median', 
+                       verbose : Optional[int] = 1, 
+                       peak_threshold: Optional[int] = 1000,
+                       suppression_threshold: Optional[int] = 10) -> (np.ndarray):
+    '''
+    Averages waveforms. Takes in multiple h5 files, splits the data into chunks for processing ease and analyses them. The chunks are passed into cook_data,
+      which flips polarity, subtracts baseline, removes events with large secondary peaks and suppresses baseline. This function then averages this data to form a single
+      average waveform.
+
+    Params:
+    files (list of str)                 :                   list of h5 files contsaining waveform data
+    bin_size (int)                      :                   time spacing between bins in ns
+    window_args (array)                 :                   array of the 'windows' aka band for signal and baseline sidebands
+    chunk_size (int)                    :                   size of data chunks for ease of processing
+    negative (bool)                     :                   is the waveform negative in amplitude?
+    baseline_mode (str)                 :                   method of baseline subtraction
+    verbose (int)                       :                   amount of live infor wanted, 0 for none, 1 for words, 2 for plots
+    peak_threshold (int)                :                   amplitude of secondary peaks rejected
+    suppression_threshold (int)         :                   amplitude below which is set to zero for baseline suppression
+
+    Returns:
+    average_waveform (array)            :                   data for final average waveform
+    '''
+
+    # Variables to accumulate sum and count
+    waveform_sum = None
+    num_waveforms = 0
+    chunk_number = 0
+    # Loop through each file and process the waveforms in chunks
+    for filepath in files:
+        if os.path.exists(filepath):
+            print(f"Processing file: {filepath}")
+
+            x = io.load_rwf_info(filepath, samples=2)
+            waveforms = x.rwf.values
+
+            # Get the total number of waveforms in the current file
+            total_waveforms = waveforms.shape[0]
+
+            # Process the data in chunks to avoid memory overload, cooks data in chunks also
+            for start_idx in range(0, total_waveforms, chunk_size):
+                end_idx = min(start_idx + chunk_size, total_waveforms)
+                waveform_chunk = waveforms[start_idx:end_idx]
+
+                # Process the chunk, passing the event_number
+                sub_wf_chunk = cook_data(
+                    waveform_chunk, bin_size, window_args, chunk_size, chunk_number, negative, 
+                    baseline_mode, verbose, peak_threshold, suppression_threshold
+                )
+
+                # Add the chunk of waveforms to the running sum unless its nowt (nowt means nothing)
+                if len(sub_wf_chunk) == 0:
+                    continue
+
+                # Initialise the waveform sum
+                if waveform_sum is None:
+                    waveform_sum = np.zeros_like(sub_wf_chunk[0], dtype=np.float64)
+
+                waveform_sum += np.sum(sub_wf_chunk, axis=0)
+            
+                # Update the number of waveforms processed
+                num_waveforms += len(sub_wf_chunk)
+            
+                chunk_number +=1
+                
+        else:
+            print(f"File not found: {filepath}")
+  
+    if num_waveforms == 0: #Check that we have some waveforms
+        raise ValueError("No valid waveforms after processing")
+
+    # Average the waveforms
+    average_waveform = waveform_sum / num_waveforms
+    del x
+    return average_waveform
+
+def window_overlap_check(window_args: dict):
+    '''
+    Checks that window args dont overlap with one another
+    
+    Params:
+    window_args  : dict
+    '''
+    WINDOW_START     = window_args['WINDOW_START']
+    WINDOW_END       = window_args['WINDOW_END']
+    BASELINE_POINT_1 = window_args['BASELINE_POINT_1']
+    BASELINE_POINT_2 = window_args['BASELINE_POINT_2']
+    BASELINE_RANGE_1 = window_args['BASELINE_RANGE_1']
+    BASELINE_RANGE_2 = window_args['BASELINE_RANGE_2']
+
+    # Define intervals
+    w_start, w_end = WINDOW_START, WINDOW_END
+
+    b1_start = BASELINE_POINT_1 - BASELINE_RANGE_1 / 2
+    b1_end   = BASELINE_POINT_1 + BASELINE_RANGE_1 / 2
+
+    b2_start = BASELINE_POINT_2 - BASELINE_RANGE_2 / 2
+    b2_end   = BASELINE_POINT_2 + BASELINE_RANGE_2 / 2
+
+    # Check for negative values
+    if (w_start < 0 or w_end < 0 or
+        b1_start < 0 or b1_end < 0 or
+        b2_start < 0 or b2_end < 0):
+        raise ValueError('window args include values that are negative')
+
+    # Check window validity
+    if w_start >= w_end:
+        raise ValueError('WINDOW_START must be less than WINDOW_END')
+
+    # Check baseline overlap with window
+    if ((w_start < b1_end and b1_start < w_end) or
+        (w_start < b2_end and b2_start < w_end)):
+        raise ValueError('error as baseline and window overlap')
+
+    # Check baselines overlap each other
+    if (b1_start < b2_end and b2_start < b1_end):
+        raise ValueError('error as baselines overlap')
+
+    return
+
+def window_wf_check(wf : np.ndarray,
+                     window_args : dict) -> (bool):
+    '''
+    Checks that window args agree with wf length
+    Params:
+    wf  : np.ndarray of the waveform
+    window_args : dict of window arguments
+
+    Returns:
+    bool, if the waveforms agree returns True, if not, False for flagging
+    '''
+    length = len(wf)
+    WINDOW_START     = window_args['WINDOW_START']
+    WINDOW_END       = window_args['WINDOW_END']
+    BASELINE_POINT_1 = window_args['BASELINE_POINT_1']
+    BASELINE_POINT_2 = window_args['BASELINE_POINT_2']
+    BASELINE_RANGE_1 = window_args['BASELINE_RANGE_1']
+    BASELINE_RANGE_2 = window_args['BASELINE_RANGE_2']
+    if WINDOW_START>length or WINDOW_END>length or BASELINE_POINT_1+BASELINE_RANGE_1/2>length or BASELINE_POINT_2+BASELINE_RANGE_2>length:
+        return False
+    else:
+        return True

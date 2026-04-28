@@ -252,7 +252,7 @@ def test_lazy_loading_malformed_data_WD1(MULE_dir):
 
     with raises(MalformedHeaderError):
         with open(data_path, 'rb') as file:
-            a = process_event_lazy_WD1(file, sample_size = 2)
+            a = process_event_lazy_WD1(file)
             next(a)
             next(a)
 
@@ -264,7 +264,7 @@ def test_lazy_loading_short_header_WD1(MULE_dir):
 
     data_path = MULE_dir + "/packs/tests/data/malformed_short_header.bin"
     with open(data_path, 'rb') as file:
-        a = process_event_lazy_WD1(file, sample_size = 2)
+        a = process_event_lazy_WD1(file)
         next(a)
 
 
