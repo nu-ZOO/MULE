@@ -1,5 +1,6 @@
 import subprocess
 import configparser
+import sys
 
 from pytest                import mark
 from pytest                import raises
@@ -15,20 +16,20 @@ def test_executable_runs_successfully(pack, MULE_dir):
     `bin/mule` to work as intended, accessing the relevant files when run.
     '''
                    # config will need to be improved
-    run_pack = ["python3", MULE_dir + "/bin/mule", str(pack), "test_config"]
+    run_pack = [sys.executable, MULE_dir + "/bin/mule", str(pack), "test_config"]
 
     # ensure output is successful (no errors)
 
     # this should be more complex in the future, such as if the config (which
     # will be a default for the tests) returns the test flag return a number, or
-    # something in particular from subprocess
+    # something in particuelar from subprocess
     assert subprocess.run(run_pack).returncode == 0
 
 
 def test_incorrect_pack_returns_error(MULE_dir):
 
     # give an incorrect pack
-    run_pack = ["python3", MULE_dir + "/bin/mule", "donkey", "config"]
+    run_pack = [sys.executable, MULE_dir + "/bin/mule", "donkey", "config"]
 
     with raises(subprocess.CalledProcessError):
         subprocess.run(run_pack, check = True)
@@ -63,7 +64,7 @@ def test_processing_catches(config, error, MULE_dir, data_dir):
 
     config_path = data_dir + "configs/" + config
 
-    run_pack = ["python3", MULE_dir + "/bin/mule", "proc", config_path]
+    run_pack = [sys.executable, MULE_dir + "/bin/mule", "proc", config_path]
 
     with raises(subprocess.CalledProcessError):
         subprocess.run(run_pack, check = True)
