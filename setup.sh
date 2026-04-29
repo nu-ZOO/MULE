@@ -90,7 +90,7 @@ fi
 if ! (conda env list | grep ${MULE_ENV_NAME}) >> /dev/null
 then
 	echo "Couldn't find environment, creating environment..."
-	conda env create -f MULE_environment.yml python=$PYTHON_VERSION
+	conda env create -f MULE_environment.yml
 fi
 
 echo "Activating environment..."
