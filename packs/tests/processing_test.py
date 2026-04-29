@@ -198,7 +198,7 @@ def test_decode_produces_expected_output(config, inpt, output, comparison, MULE_
         cnfg.write(cfgfile)
 
     # run processing pack decode
-    run_pack = ['python3', MULE_dir + "/bin/mule", "proc", temp_config]
+    run_pack = [sys.executable, MULE_dir + "/bin/mule", "proc", temp_config]
     subprocess.run(run_pack)
     # check that the resulting dataframe is as expected
     assert load_evt_info(save_path).equals(load_evt_info(comparison_path))
@@ -229,7 +229,7 @@ def test_WD1_decode_produces_expected_output(config, inpt, output, comparison, M
         cnfg.write(cfgfile)
 
     # run processing pack decode
-    run_pack = ['python3', MULE_dir + "/bin/mule", "proc", temp_config]
+    run_pack = [sys.executable, MULE_dir + "/bin/mule", "proc", temp_config]
     subprocess.run(run_pack)
 
     # the event info can be read out like a normal h5, the RWF cannot due to how they're structured
