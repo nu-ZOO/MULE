@@ -6,6 +6,7 @@ import numpy  as np
 import tables as tb
 import pandas as pd
 import warnings
+import csv
 
 import h5py
 
@@ -562,3 +563,131 @@ def process_bin_WD2(file_path  :  str,
                 save_data(event_info, rwf, save_path, counter)
             counter += (counts)
 
+def read_header(file_obj  :   BinaryIO):
+    '''
+    Reads and parses the header of an oscilloscope binary file, extracting
+    metadata such as the number of segments, segment size, and time step.
+
+    Parameters
+    ----------
+    file_obj : BinaryIO
+        Opened binary file object pointing to the start of the oscilloscope data file.
+
+    Returns
+    -------
+    tuple[np.ndarray, int, int]
+        A tuple containing:
+        - dt : np.ndarray
+            Time step between consecutive samples, computed as np.diff([time2, time1]).
+        - segments : int
+            Number of waveform segments (waveforms) stored in the file.
+        - segment_size : int
+            Number of samples per segment.
+    '''
+    
+    oscilloscope_model = int((next(file_obj).split(','))[1])
+    file_heading = next(file_obj).split(',')
+    segments = int(file_heading[1])
+    segment_size = int(file_heading[3])   
+    evt_info_heading = next(file_obj).split(',')
+    for evt_info_line_idx in range(segments):
+        evt_info_line = next(file_obj).split(',')
+    data_heading = next(file_obj).split(',')  
+    time1 = float((next(file_obj).split(','))[0])
+    time2 = float((next(file_obj).split(','))[0])
+
+    return ((np.diff([time1, time2]))[0], segments, segment_size)
+
+def get_batch(reader    :   '_csv.reader',
+              batch_size    :   int):
+    '''
+    Generator that outputs a list of all the second elements of a row for each batch
+    then goes to the next row
+    Parameters
+    ----------
+        reader  (_csv.reader)  :  Opened file object
+
+    Returns
+    -------
+        data  (generator)  :  Generator object containing one waveforms's worth of data
+    '''
+    return [float(row[1]) for _ in range(batch_size) if (row := next(reader, None))]
+
+def process_event_lazy_lecroy(file_obj  :   BinaryIO):
+    '''
+    Lecroy Oscilloscope LECROYWS4054HD: Generator that outputs each event iteratively from an opened csv file
+    Parameters
+    ----------
+        file_object  (obj)  :  Opened file object
+
+    Returns
+    -------
+        data  (generator)  :  Generator object containing one event's worth of data
+                              across each event
+    '''
+    oscilloscope_model = int((next(file_obj).split(','))[1])
+    file_heading = next(file_obj).split(',')
+    segments = int(file_heading[1])
+    segment_size = int(file_heading[3])
+
+    evt_info_heading = next(file_obj).split(',')
+    evt_info_times  = np.empty(segments, dtype=np.float64)
+    for evt_info_line_idx in range(segments):
+        evt_info_line = next(file_obj).split(',')
+        evt_info_times[evt_info_line_idx] = evt_info_line[2] # time since first sample recorded
+
+    data_heading = next(file_obj).split(',')
+    reader = csv.reader(file_obj)
+    wf_num = 0
+    while batch := get_batch(reader, segment_size):
+        #if wf_num == 0: # used for the check_time below
+        #    return batch
+        yield (batch, evt_info_times[wf_num])    
+        wf_num += 1
+    
+    print("Processing Finished!")
+
+def process_csv_lecroy(file_path    :  str,
+                save_path    :  str,
+                overwrite    :  Optional[bool] = False,
+                print_mod    :  Optional[int] = -1):   
+    """
+    Process a Lecroy CSV waveform file and write the parsed events to a structured output file.
+
+    Reads waveform data lazily from a Lecroy-format CSV, structures each event into
+    typed NumPy arrays, and writes them incrementally to the output file using a
+    context-managed writer.
+    Parameters
+    ----------
+        file_path  (str) : Path to the input Lecroy CSV file to be read.
+        save_path  (str) : Path to the output file where processed waveform data will be saved.
+        overwrite  (bool) : If True, overwrite the output file if it already exists. Defaults to False.
+        print_mod  (int) : Print progress every N events. Set to -1 to disable printing. Defaults to -1.
+    Returns
+    -------
+        None
+    """
+    
+    with open(file_path, 'r') as file_object:
+        (sample_size, num_of_events, samples) = read_header(file_object)    
+    print('wfs: ', num_of_events, '; samples: ', samples, '; sample size: ', sample_size)  
+
+    with open(file_path, 'r') as file_object:
+
+        with writer(save_path, 'RAW', overwrite) as write:
+
+            for i, (waveform, timestamp) in enumerate(process_event_lazy_lecroy(file_object)):
+
+                if (i % print_mod == 0) and (print_mod != -1):
+                    print(f"Event {i}")
+
+                # enforce stucture upon data
+                e_dtype  = types.event_info_type
+                wf_dtype = types.rwf_type(samples)
+
+                event_info = np.array((i, timestamp, samples, sample_size, 1), dtype = e_dtype)
+                waveforms  = np.array((i, 0, waveform), dtype = wf_dtype)
+
+                # add data to df lazily
+                write('event_info', event_info, (True, num_of_events, i))
+                write('rwf', waveforms, (True, num_of_events, i))
