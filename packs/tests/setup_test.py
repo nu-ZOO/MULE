@@ -22,7 +22,7 @@ def test_executable_runs_successfully(pack, MULE_dir):
 
     # this should be more complex in the future, such as if the config (which
     # will be a default for the tests) returns the test flag return a number, or
-    # something in particuelar from subprocess
+    # something in particular from subprocess
     assert subprocess.run(run_pack).returncode == 0
 
 
