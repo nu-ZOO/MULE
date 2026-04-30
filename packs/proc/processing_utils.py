@@ -424,7 +424,7 @@ def process_event_lazy_WD1(file_object  :  BinaryIO):
 
 def process_bin_WD1(file_path    :  str,
                     save_path    :  str,
-                    sample_size  :  int,
+                    sample_size  :  float,
                     overwrite    :  Optional[bool] = False,
                     print_mod    :  Optional[int] = -1):
 
@@ -446,7 +446,7 @@ def process_bin_WD1(file_path    :  str,
     ----------
         file_path    (str)   :  Path to binary file
         save_path    (str)   :  Path to saved file
-        sample_size  (int)   :  Size of each sample in an event (default 2 ns in the case of V1730B digitiser)
+        sample_size  (float)   :  Size of each sample in an event (default 2 ns in the case of V1730B digitiser)
         overwrite    (bool)  :  Boolean for overwriting pre-existing files
         print_mod    (int)   :  Readout frequency for number of events, -1 implies no readout
     Returns
@@ -457,6 +457,7 @@ def process_bin_WD1(file_path    :  str,
 
     # lets build it here first and break it up later
     # destroy the group within the file if you're overwriting
+    save_path = os.path.abspath(save_path)
     save_path = check_save_path(save_path, overwrite)
     print(save_path)
 
