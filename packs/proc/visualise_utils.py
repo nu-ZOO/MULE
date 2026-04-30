@@ -8,12 +8,14 @@ import numpy  as np
 import pandas as pd
 import warnings
 import matplotlib
+import matplotlib.pyplot as plt
+from matplotlib.pyplot import cm
 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import tkinter as tk
 from tkinter import ttk
 
-from packs.core.io import load_evt_info, load_rwf_info, reader, check_chunking
+from packs.core.io import load_evt_info, load_rwf_info
 from packs.types import types
 from packs.proc.waveform_utils import subtract_baseline, collect_sidebands
 
@@ -26,10 +28,11 @@ def visualise(
     # Load event + waveform info
     wf_evt = load_evt_info(file_path)
     samples = int(wf_evt.loc[0].samples)
+    sampling_period = float(wf_evt.loc[0].sampling_period)
     wf_rwf = load_rwf_info(file_path, samples)
-    print(' ... number of samples ... ', samples)
-
+    print(f'file: {file_path}\nsamples: {samples}\nsampling_period: {sampling_period}')
     max_wf = len(wf_rwf['rwf']) - 1
+    time = np.linspace(0,samples * sampling_period, num = samples)
 
     # --- GUI setup ---
     root = tk.Tk()
@@ -44,21 +47,6 @@ def visualise(
         single_wf = wf_rwf['rwf'][wf_num]
         if vis_params['negative']:
             single_wf = -single_wf
-
-        # check if chunked for backwards compatibility
-        chunked, keys, l_keys, e_keys = check_chunking(file_path)
-
-        # extract relevant information from event info (assuming static)
-        scout                                    = reader(file_path, 'event_information', e_keys[0])
-        _, _, samples, sampling_period, channels = next(scout)
-        del scout
-
-        calibration_info_type = types.calibration_info_type
-        wf_dtype              = types.rwf_type(samples)
-
-        print(f'file: {file_path}\nsamples: {samples}\nsampling_period: {sampling_period}\nchannels: {channels}')
-
-        time = np.linspace(0,samples * sampling_period, num = samples)
 
         sideband_values = collect_sidebands(single_wf, time, vis_params)
         single_wf = single_wf - subtract_baseline(sideband_values, sub_type = vis_params['baseline_sub'])
