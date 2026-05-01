@@ -341,38 +341,56 @@ def save_data(event_information  :  np.ndarray,
 
 
 
-def check_save_path(save_path  :  str,
-                    overwrite  :  bool):
+def check_save_path(save_path : str,
+                    overwrite : bool,
+                    warn_threshold : Optional[int] = 100,
+                    max_iterations : Optional[int] = 1000):
     '''
     Checks that the save_path exists. Checks if it is valid/doesn't already exist
-    and if it does, other `overwrite` it or create an additional file with a number added.
+    and if it does, either overwrite it or create an additional file with a number added.
 
     Parameters
     ----------
-
-        save_path  (str)   :  Path to saved file
-        overwrite  (bool)  :  Boolean for overwriting pre-existing files
+        save_path      (str)   :  Path to saved file
+        overwrite      (bool)  :  Boolean for overwriting pre-existing files
+        warn_threshold (int)   :  Number of iterations before a warning is issued (default 100)
+        max_iterations (int)   :  Maximum number of iterations before raising an error (default 1000)
 
     Returns
     -------
         save_path  (str)  :  Valid path to saved file, either unmodified or altered to add '_N'
-                             where N is number of loops it had to do before finding a valid N
+                             where N is the first available number
 
+    Raises
+    ------
+        FileNotFoundError  :  If the directory of save_path does not exist
+        RuntimeError       :  If max_iterations is exceeded
     '''
     if not os.path.exists(os.path.dirname(save_path)):
         raise FileNotFoundError(2, 'Save path not found', os.path.dirname(save_path))
 
+    if overwrite or not os.path.exists(save_path):
+        return save_path
+
     name, ext = os.path.splitext(save_path)
-    counter = 1
 
-    if overwrite == False:
-        while os.path.exists(save_path):
-            save_path = name + str(counter) + ext
-            counter += 1
-            if counter > 100:
-                raise RuntimeError("Writing to file went over 100 loops to find a unique name. Sort out your files!")
+    for counter in range(1, max_iterations + 1):
+        candidate = f"{name}_{counter}{ext}"
 
-    return save_path
+        if counter == warn_threshold:
+            warnings.warn(
+                f"Over {warn_threshold} files with the name '{os.path.basename(name)}' exist. "
+                f"Consider tidying up your files.",
+                UserWarning
+            )
+
+        if not os.path.exists(candidate):
+            return candidate
+
+    raise RuntimeError(
+        f"Could not find a unique filename after {max_iterations} attempts for '{save_path}'. "
+        f"Consider tidying up your files."
+    ) ## Interactive prompt? datetime naming?
 
 
 def process_event_lazy_WD1(file_object  :  BinaryIO):
