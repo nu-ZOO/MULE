@@ -12,6 +12,7 @@ import h5py
 from typing import BinaryIO
 from typing import Generic
 from typing import Optional
+from datetime import datetime
 
 # imports start from MULE/
 from packs.core.core_utils import flatten
@@ -341,56 +342,58 @@ def save_data(event_information  :  np.ndarray,
 
 
 
-def check_save_path(save_path : str,
-                    overwrite : bool,
-                    warn_threshold : Optional[int] = 100,
-                    max_iterations : Optional[int] = 1000):
+def check_save_path(save_path: str, overwrite: bool):
     '''
-    Checks that the save_path exists. Checks if it is valid/doesn't already exist
-    and if it does, either overwrite it or create an additional file with a number added.
+    Checks that the save_path directory exists, then either returns the path unmodified
+    (if overwrite is True) or generates a unique save path by inserting a datetime stamp
+    (YYYYMMDD_HHMMSS) before the file extension. If a file with that datetime name already
+    exists, a counter suffix is appended.
+
+    If overwrite is True and the file already exists, the user is prompted to confirm.
+    If the user declines, the function falls back to datetime-stamped naming.
 
     Parameters
     ----------
-        save_path      (str)   :  Path to saved file
-        overwrite      (bool)  :  Boolean for overwriting pre-existing files
-        warn_threshold (int)   :  Number of iterations before a warning is issued (default 100)
-        max_iterations (int)   :  Maximum number of iterations before raising an error (default 1000)
+        save_path  (str)   :  Path to saved file
+        overwrite  (bool)  :  If True, returns save_path unmodified after confirmation.
+                              If False, appends '_YYYYMMDD_HHMMSS' to the stem, plus '_N'
+                              if needed.
 
     Returns
     -------
-        save_path  (str)  :  Valid path to saved file, either unmodified or altered to add '_N'
-                             where N is the first available number
+        save_path  (str)  :  Valid path to saved file, either unmodified or with datetime
+                             stamp and optional counter appended
 
     Raises
     ------
         FileNotFoundError  :  If the directory of save_path does not exist
-        RuntimeError       :  If max_iterations is exceeded
     '''
     if not os.path.exists(os.path.dirname(save_path)):
         raise FileNotFoundError(2, 'Save path not found', os.path.dirname(save_path))
 
-    if overwrite or not os.path.exists(save_path):
-        return save_path
+    if overwrite:
+        if os.path.exists(save_path):
+            response = input(f"'{save_path}' already exists. Overwrite? (y/n): ").strip().lower()
+            if response != 'y':
+                overwrite = False
+        else:
+            return save_path
 
-    name, ext = os.path.splitext(save_path)
+    if not overwrite:
+        name, ext = os.path.splitext(save_path)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        dated_path = f"{name}_{timestamp}{ext}"
 
-    for counter in range(1, max_iterations + 1):
-        candidate = f"{name}_{counter}{ext}"
+        if not os.path.exists(dated_path):
+            return dated_path
 
-        if counter == warn_threshold:
-            warnings.warn(
-                f"Over {warn_threshold} files with the name '{os.path.basename(name)}' exist. "
-                f"Consider tidying up your files.",
-                UserWarning
-            )
+        counter = 1
+        while os.path.exists(f"{name}_{timestamp}_{counter}{ext}"):
+            counter += 1
 
-        if not os.path.exists(candidate):
-            return candidate
+        return f"{name}_{timestamp}_{counter}{ext}"
 
-    raise RuntimeError(
-        f"Could not find a unique filename after {max_iterations} attempts for '{save_path}'. "
-        f"Consider tidying up your files."
-    ) ## Interactive prompt? datetime naming?
+    return save_path
 
 
 def process_event_lazy_WD1(file_object  :  BinaryIO):
