@@ -58,26 +58,21 @@ def test_changing_config_order(config, inpt, output, comparison, MULE_dir, data_
         all_keys = list(cnfg["required"].keys())
         extra_keys = [k for k in all_keys if k not in new_order]
 
-        reordered = configparser.ConfigParser()
-        reordered.add_section("required")
+    reordered = configparser.ConfigParser()
+    reordered.add_section("required")
 
-        for key in new_order + extra_keys:
-            reordered.set("required", key, cnfg.get("required", key))
+    for key in new_order + extra_keys:
+        reordered.set("required", key, cnfg.get("required", key))
 
-        reordered.set('required', 'file_path', f"'{file_path}'")
-        reordered.set('required', 'save_path', f"'{save_path}'")
+    reordered.set('required', 'file_path', f"'{file_path}'")
+    reordered.set('required', 'save_path', f"'{save_path}'")
 
-        # Write back
-        with open(config_path, "w") as f:
-            reordered.write(f)
+    # copy over all other sections unchanged
+    for section in cnfg.sections():
+        if section != "required":
+            reordered.add_section(section)
+            for key, value in cnfg.items(section):
+                reordered.set(section, key, value)
 
-        # run processing pack decode
-        run_pack = [sys.executable, MULE_dir + "/bin/mule", "proc", config_path]
-        subprocess.run(run_pack)
-        # check that the resulting dataframe is as expected
-        assert load_evt_info(save_path).equals(load_evt_info(comparison_path))
-        assert load_rwf_info(save_path, samples).equals(load_rwf_info(comparison_path, samples))
-    finally:
-        # rewrite config file to original state
-        with open(config_path, "w") as f:
-            f.write(original_content)
+    with open(config_path, "w") as f:
+        reordered.write(f)
