@@ -1,3 +1,4 @@
+import datetime
 import os
 import sys
 import re
@@ -163,17 +164,16 @@ def test_ensure_new_path_created(data_dir):
     assert not os.path.exists(found_path), "Path should not already exist"
 
 
-def test_runtime_error_when_too_many_save_files(data_dir):
+def test_runtime_error_when_too_many_save_files(tmp_path):
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    relevant_dir = data_dir + 'repetitive_data/'
-    # generate 101 empty files
-    with open(relevant_dir + f'test_.txt', 'w'):
-            pass
+    # create the base file and 100 counter variants with the same timestamp
+    (tmp_path / f'test_{timestamp}.txt').touch()
     for i in range(1, 101):
-        with open(relevant_dir + f'test_{i}.txt', 'w'):
-            pass
+        (tmp_path / f'test_{timestamp}_{i}.txt').touch()
+
     with raises(RuntimeError):
-        check_save_path(relevant_dir + 'test_.txt', overwrite=False)
+        check_save_path(str(tmp_path / 'test.txt'), overwrite=False)
 
 @mark.parametrize("config, inpt, output, comparison", [("process_WD2_1channel.conf", "one_channel_WD2.bin", "one_channel_tmp.h5", "one_channel_WD2.h5"),
                                            ("process_WD2_3channel.conf", "three_channels_WD2.bin", "three_channels_tmp.h5", "three_channels_WD2.h5")])
