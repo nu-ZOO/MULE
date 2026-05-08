@@ -349,9 +349,6 @@ def check_save_path(save_path: str, overwrite: bool):
     (YYYYMMDD_HHMMSS) before the file extension. If a file with that datetime name already
     exists, a counter suffix is appended.
 
-    If overwrite is True and the file already exists, the user is prompted to confirm.
-    If the user declines, the function falls back to datetime-stamped naming.
-
     Parameters
     ----------
         save_path  (str)   :  Path to saved file
@@ -372,12 +369,7 @@ def check_save_path(save_path: str, overwrite: bool):
         raise FileNotFoundError(2, 'Save path not found', os.path.dirname(save_path))
 
     if overwrite:
-        if os.path.exists(save_path):
-            response = input(f"'{save_path}' already exists. Overwrite? (y/n): ").strip().lower()
-            if response != 'y':
-                overwrite = False
-        else:
-            return save_path
+        return save_path
 
     if not overwrite:
         name, ext = os.path.splitext(save_path)
