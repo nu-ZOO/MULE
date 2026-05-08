@@ -371,6 +371,8 @@ def check_save_path(save_path: str, overwrite: bool):
     if overwrite:
         return save_path
 
+    MAX_ATTEMPTS = 100
+
     if not overwrite:
         name, ext = os.path.splitext(save_path)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -381,6 +383,8 @@ def check_save_path(save_path: str, overwrite: bool):
 
         counter = 1
         while os.path.exists(f"{name}_{timestamp}_{counter}{ext}"):
+            if counter >= MAX_ATTEMPTS:
+                raise RuntimeError(f"Too many save files with the same timestamp: {dated_path}")
             counter += 1
 
         return f"{name}_{timestamp}_{counter}{ext}"
