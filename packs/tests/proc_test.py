@@ -55,13 +55,16 @@ def test_changing_config_order(config, inpt, output, comparison, MULE_dir, data_
 
         # Rebuild the section in new order
         new_order = ["save_path", "file_path", "wavedump_edition", "process"]
+        all_keys = list(cnfg["required"].keys())
+        extra_keys = [k for k in all_keys if k not in new_order]
+
         reordered = configparser.ConfigParser()
         reordered.add_section("required")
 
-        for key in new_order:
+        for key in new_order + extra_keys:
             reordered.set("required", key, cnfg.get("required", key))
 
-        reordered.set('required', 'file_path', "'" +  file_path + "'") # need to add comments around for config reasons
+        reordered.set('required', 'file_path', f"'{file_path}'")
         reordered.set('required', 'save_path', f"'{save_path}'")
 
         # Write back
