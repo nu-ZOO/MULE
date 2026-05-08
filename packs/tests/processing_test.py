@@ -1,5 +1,6 @@
 import os
 import sys
+import re
 
 import numpy as np
 import pandas as pd
@@ -153,13 +154,13 @@ def test_save_path_exists():
 
 
 def test_ensure_new_path_created(data_dir):
+    data_path  = data_dir + 'three_channels_WD2.h5'
+    found_path = check_save_path(data_path, overwrite=False)
 
-    data_path     = data_dir + 'three_channels_WD2.h5'
-    new_data_path = data_dir + 'three_channels_WD21.h5'
-
-    found_path    = check_save_path(data_path, overwrite = False)
-
-    assert found_path == new_data_path
+    assert found_path != data_path
+    assert found_path.endswith('.h5')
+    assert re.search(r'_\d{8}_\d{6}', found_path), "Expected datetime stamp in filename"
+    assert not os.path.exists(found_path), "Path should not already exist"
 
 
 def test_runtime_error_when_too_many_save_files(data_dir):
