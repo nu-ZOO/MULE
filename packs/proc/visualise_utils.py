@@ -17,11 +17,10 @@ from tkinter import ttk
 
 from packs.core.io import load_evt_info, load_rwf_info
 from packs.types import types
-from packs.proc.waveform_utils import subtract_baseline, collect_sidebands
+from packs.proc.calibration_utils import subtract_baseline, collect_sidebands
 
-def visualise(
-        file_path     :  str,
-        vis_params   :  dict):
+def visualise( file_path     :  str,
+                vis_params   :  dict):
     
     filename = (file_path.rsplit('.')[1]).rsplit('/')[0]
 
