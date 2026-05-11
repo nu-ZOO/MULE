@@ -211,11 +211,14 @@ def test_decode_produces_expected_output(config, inpt, output, comparison, MULE_
     assert load_rwf_info(save_path, samples).equals(load_rwf_info(comparison_path, samples))
 
 
-@mark.parametrize("config, inpt, output, comparison", [("process_WD1_1channel.conf", "one_channel_WD1.dat", "one_channel_WD1_tmp.h5", "one_channel_WD1.h5")])
-def test_WD1_decode_produces_expected_output(config, inpt, output, comparison, MULE_dir, data_dir, tmp_path):
+@mark.parametrize("config, inpt, output, comparison", [("process_WD1_1channel.conf", "one_channel_WD1.dat", "one_channel_WD1_tmp.h5", "one_channel_WD1.h5"),
+                                                       ("process_lecroy_csv.conf", "one_channel_LECROYWS4054HD.csv", "one_channel_LECROYWS4054HD_tmp.h5", "one_channel_LECROYWS4054HD.h5")])
+def test_WD1_Lecroy_decode_produces_expected_output(config, inpt, output, comparison, MULE_dir, data_dir, tmp_path):
     '''
     This test will be merged with test_decode_produces_expected_output()
-    once WD2 processing has been updated to match lazy method of WD1
+    once WD2 processing has been updated to match lazy method of WD1.
+
+    Tests WD1 and Lecroy oscilloscope single channel processing.
     '''
 
     # ensure path is correct
@@ -272,3 +275,5 @@ def test_lazy_loading_short_header_WD1(MULE_dir):
     with open(data_path, 'rb') as file:
         a = process_event_lazy_WD1(file)
         next(a)
+
+
