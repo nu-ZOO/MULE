@@ -619,7 +619,7 @@ def read_header_lecroy(file_obj  :   io.TextIOWrapper):
 
     evt_info_heading          = next(file_obj).split(',')
     for evt_info_line_idx in range(segments):
-        evt_info_line         = next(file_obj).split(',')
+        _         = next(file_obj).split(',')
 
    
     data_heading = next(file_obj).split(',')
