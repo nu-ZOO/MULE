@@ -14,6 +14,7 @@ from typing import BinaryIO
 from typing import Generic
 from typing import Optional
 from datetime import datetime
+from typing import List
 
 # imports start from MULE/
 from packs.core.core_utils import flatten
@@ -631,7 +632,7 @@ def read_header_lecroy(file_obj  :   io.TextIOWrapper):
     return ((np.diff([time1, time2]))[0], segments, segment_size)
 
 def get_batch(reader        :   '_csv.reader',
-              batch_size    :   int) -> list: 
+              batch_size    :   int) -> List: 
     '''
     Outputs a list of all the second elements of a row for each batch
     then goes to the next row
