@@ -9,8 +9,8 @@ from tkinter import ttk
 from packs.core.io import load_evt_info, load_rwf_info
 from packs.proc.calibration_utils import subtract_baseline, collect_sidebands
 
-def visualise(file_path     :  str,
-              vis_params    :  dict):
+def visualise_waveform(file_path     :  str,
+                       vis_params    :  dict):
     """
     Launch an interactive Tkinter GUI for browsing raw waveforms from a file.
 

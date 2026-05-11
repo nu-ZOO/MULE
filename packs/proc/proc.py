@@ -7,7 +7,6 @@ from packs.proc.processing_utils  import process_bin_WD2
 from packs.proc.processing_utils  import process_bin_WD1
 from packs.proc.calibration_utils    import calibrate
 from packs.core.core_utils        import check_test
-from packs.proc.visualise_utils   import visualise
 
 def proc(config_file):
     print("Starting the processing pack...")
@@ -34,8 +33,6 @@ def proc(config_file):
                         raise RuntimeError(f"wavedump edition {other} decoding isn't currently implemented.")
             case 'calibrate':
                 calibrate(**conf_dict)
-            case 'visualise':
-                visualise(**conf_dict)
             case other:
                 raise RuntimeError(f"process {other} not currently implemented.")
     except KeyError as e:
