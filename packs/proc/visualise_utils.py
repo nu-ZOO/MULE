@@ -21,6 +21,18 @@ from packs.proc.calibration_utils import subtract_baseline, collect_sidebands
 
 def visualise(file_path     :  str,
               vis_params    :  dict):
+    """
+    Launch an interactive Tkinter GUI for browsing raw waveforms from a file.
+
+    Parameters
+    ----------
+    file_path : str
+        Path to the data file. Used to load event/waveform info.
+    vis_params : dict
+        Visualisation options:
+        - 'negative'     (bool) – invert the waveform amplitude.
+        - 'baseline_sub' (str)  – method for determining baseline, 'median' or 'mean' 
+    """
     
     filename = (file_path.rsplit('.')[1]).rsplit('/')[0]
 
@@ -41,7 +53,8 @@ def visualise(file_path     :  str,
     canvas = FigureCanvasTkAgg(fig, master=root)
     canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
-    def plot_waveform(wf_num):
+    def plot_waveform(wf_num    :   int):
+        """Clear the axes and draw waveform wf_num with baseline subtraction applied."""
         ax.clear()
         single_wf = wf_rwf['rwf'][wf_num]
         if vis_params['negative']:
@@ -65,7 +78,8 @@ def visualise(file_path     :  str,
     # Number entry
     entry_var = tk.StringVar(value="0")
 
-    def on_entry(event=None):
+    def on_entry(event      : tk.Event | None = None):
+        """Check and apply the waveform index, fixing the diagram to the valid range."""
         try:
             val = int(entry_var.get())
             val = max(0, min(val, max_wf))
@@ -83,7 +97,8 @@ def visualise(file_path     :  str,
     # Slider
     slider_var = tk.IntVar(value=0)
 
-    def on_slider(event=None):
+    def on_slider(value     : str | None = None):
+        """Command for ttk.Scale. Sync the entry box to the slider position and redraw the selected waveform."""
         val = slider_var.get()
         entry_var.set(str(val))
         plot_waveform(val)
