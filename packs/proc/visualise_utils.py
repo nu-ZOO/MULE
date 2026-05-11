@@ -33,6 +33,41 @@ def visualise(file_path     :  str,
         - 'negative'     (bool) – invert the waveform amplitude.
         - 'baseline_sub' (str)  – method for determining baseline, 'median' or 'mean' 
     """
+    # supporting functions
+    # ---------------------------------------------------------------------------------
+    def plot_waveform(wf_num    :   int):
+        """Clear the axes and draw waveform wf_num with baseline subtraction applied."""
+        ax.clear()
+        single_wf = wf_rwf['rwf'][wf_num]
+        if vis_params['negative']:
+            single_wf = -single_wf
+
+        sideband_values = collect_sidebands(single_wf, time, vis_params)
+        single_wf = single_wf - subtract_baseline(sideband_values, sub_type = vis_params['baseline_sub'])
+        ax.plot(time, single_wf,
+                marker='o', markerfacecolor='None', linestyle='None', markersize=1)
+        ax.set_title(f'Waveform #{wf_num}')
+        ax.set_xlabel('Time (s)')
+        ax.set_ylabel('ADC')
+        canvas.draw()
+    
+    def on_entry(event      : tk.Event | None = None):
+        """Check and apply the waveform index, fixing the diagram to the valid range."""
+        try:
+            val = int(entry_var.get())
+            val = max(0, min(val, max_wf))
+            entry_var.set(val)
+            slider_var.set(val)
+            plot_waveform(val)
+        except ValueError:
+            pass
+    
+    def on_slider(value     : str | None = None):
+        """Command for ttk.Scale. Sync the entry box to the slider position and redraw the selected waveform."""
+        val = slider_var.get()
+        entry_var.set(str(val))
+        plot_waveform(val)
+    # ---------------------------------------------------------------------------------
     
     filename = (file_path.rsplit('.')[1]).rsplit('/')[0]
 
@@ -54,22 +89,6 @@ def visualise(file_path     :  str,
     canvas = FigureCanvasTkAgg(fig, master=root)
     canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
-    def plot_waveform(wf_num    :   int):
-        """Clear the axes and draw waveform wf_num with baseline subtraction applied."""
-        ax.clear()
-        single_wf = wf_rwf['rwf'][wf_num]
-        if vis_params['negative']:
-            single_wf = -single_wf
-
-        sideband_values = collect_sidebands(single_wf, time, vis_params)
-        single_wf = single_wf - subtract_baseline(sideband_values, sub_type = vis_params['baseline_sub'])
-        ax.plot(time, single_wf,
-                marker='o', markerfacecolor='None', linestyle='None', markersize=1)
-        ax.set_title(f'Waveform #{wf_num}')
-        ax.set_xlabel('Time (s)')
-        ax.set_ylabel('ADC')
-        canvas.draw()
-
     # controls frame
     ctrl = ttk.Frame(root, padding=8)
     ctrl.pack(fill=tk.X)
@@ -79,17 +98,7 @@ def visualise(file_path     :  str,
     # number entry
     entry_var = tk.StringVar(value="0")
 
-    def on_entry(event      : tk.Event | None = None):
-        """Check and apply the waveform index, fixing the diagram to the valid range."""
-        try:
-            val = int(entry_var.get())
-            val = max(0, min(val, max_wf))
-            entry_var.set(val)
-            slider_var.set(val)
-            plot_waveform(val)
-        except ValueError:
-            pass
-
+    # controls entry
     entry = ttk.Entry(ctrl, textvariable=entry_var, width=7)
     entry.pack(side=tk.LEFT, padx=4)
     entry.bind("<Return>", on_entry)
@@ -97,12 +106,6 @@ def visualise(file_path     :  str,
 
     # slider
     slider_var = tk.IntVar(value=0)
-
-    def on_slider(value     : str | None = None):
-        """Command for ttk.Scale. Sync the entry box to the slider position and redraw the selected waveform."""
-        val = slider_var.get()
-        entry_var.set(str(val))
-        plot_waveform(val)
 
     # controls slider
     slider = ttk.Scale(ctrl, from_=0, to=max_wf, orient=tk.HORIZONTAL,
