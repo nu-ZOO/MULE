@@ -37,6 +37,9 @@ from packs.types                   import types
 from hypothesis                    import given
 from hypothesis.strategies         import integers
 
+
+from unittest.mock import patch, MagicMock
+
 @given(integers(min_value = 1, max_value = 1000000))
 def test_rwf_type_has_correct_shape(samples):
     x = rwf_type(samples)
@@ -165,15 +168,17 @@ def test_ensure_new_path_created(data_dir):
 
 
 def test_runtime_error_when_too_many_save_files(tmp_path):
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = "20240101_120000"
+    mock_dt = MagicMock()
+    mock_dt.now.return_value.strftime.return_value = timestamp
 
-    # create the base file and 100 counter variants with the same timestamp
     (tmp_path / f'test_{timestamp}.txt').touch()
     for i in range(1, 101):
         (tmp_path / f'test_{timestamp}_{i}.txt').touch()
 
-    with raises(RuntimeError):
-        check_save_path(str(tmp_path / 'test.txt'), overwrite=False)
+    with patch('packs.proc.processing_utils.datetime', mock_dt):
+        with raises(RuntimeError):
+            check_save_path(str(tmp_path / 'test.txt'), overwrite=False)
 
 @mark.parametrize("config, inpt, output, comparison", [("process_WD2_1channel.conf", "one_channel_WD2.bin", "one_channel_tmp.h5", "one_channel_WD2.h5"),
                                            ("process_WD2_3channel.conf", "three_channels_WD2.bin", "three_channels_tmp.h5", "three_channels_WD2.h5")])
