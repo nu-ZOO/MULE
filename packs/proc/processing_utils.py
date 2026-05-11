@@ -342,7 +342,9 @@ def save_data(event_information  :  np.ndarray,
 
 
 
-def check_save_path(save_path: str, overwrite: bool):
+def check_save_path(save_path: str,
+                    overwrite: bool,
+                    max_iterations : Optional[int] = 100) -> str:
     '''
     Checks that the save_path directory exists, then either returns the path unmodified
     (if overwrite is True) or generates a unique save path by inserting a datetime stamp
@@ -355,6 +357,7 @@ def check_save_path(save_path: str, overwrite: bool):
         overwrite  (bool)  :  If True, returns save_path unmodified after confirmation.
                               If False, appends '_YYYYMMDD_HHMMSS' to the stem, plus '_N'
                               if needed.
+        max_iterations (int):  Maximum number of iterations to find a unique filename before raising an error
 
     Returns
     -------
@@ -371,7 +374,6 @@ def check_save_path(save_path: str, overwrite: bool):
     if overwrite:
         return save_path
 
-    MAX_ATTEMPTS = 100
 
     if not overwrite:
         name, ext = os.path.splitext(save_path)
@@ -383,7 +385,7 @@ def check_save_path(save_path: str, overwrite: bool):
 
         counter = 1
         while os.path.exists(f"{name}_{timestamp}_{counter}{ext}"):
-            if counter >= MAX_ATTEMPTS:
+            if counter >= max_iterations:
                 raise RuntimeError(f"Too many save files with the same timestamp: {dated_path}")
             counter += 1
 
