@@ -35,7 +35,7 @@ def test_changing_config_order(config, inpt, output, comparison, MULE_dir, data_
     Test that ensure that changing the order of the config parameters
     inputted does not affect the code.
     """
-    # ensure path is correct
+    # Build absolute paths for all files
     file_path       =  data_dir + inpt
     save_path       =  data_dir + output
     comparison_path =  data_dir + comparison
@@ -53,28 +53,40 @@ def test_changing_config_order(config, inpt, output, comparison, MULE_dir, data_
         cnfg = configparser.ConfigParser()
         cnfg.read(config_path)
 
-        # Rebuild the section in new order
         new_order = ["save_path", "file_path", "wavedump_edition", "process"]
+        all_keys = list(cnfg["required"].keys())
+        extra_keys = [k for k in all_keys if k not in new_order]
+
+        # create a new config with the same parameters but in a different order
         reordered = configparser.ConfigParser()
         reordered.add_section("required")
 
-        for key in new_order:
+        for key in new_order + extra_keys:
             reordered.set("required", key, cnfg.get("required", key))
-
-        reordered.set('required', 'file_path', "'" +  file_path + "'") # need to add comments around for config reasons
+        
+        # overide the file_path and save_path to test specific paths
+        reordered.set('required', 'file_path', f"'{file_path}'")
         reordered.set('required', 'save_path', f"'{save_path}'")
 
-        # Write back
+        # Copy over any other sections without changing their order
+        for section in cnfg.sections():
+            if section != "required":
+                reordered.add_section(section)
+                for key, value in cnfg.items(section):
+                    reordered.set(section, key, value)
+
         with open(config_path, "w") as f:
             reordered.write(f)
 
-        # run processing pack decode
+        # Run MULE proc with reordered config
         run_pack = [sys.executable, MULE_dir + "/bin/mule", "proc", config_path]
         subprocess.run(run_pack)
-        # check that the resulting dataframe is as expected
+
+        # check that the output is as expected
         assert load_evt_info(save_path).equals(load_evt_info(comparison_path))
         assert load_rwf_info(save_path, samples).equals(load_rwf_info(comparison_path, samples))
+
+    # restore config to original
     finally:
-        # rewrite config file to original state
         with open(config_path, "w") as f:
             f.write(original_content)

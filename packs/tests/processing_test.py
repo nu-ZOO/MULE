@@ -1,5 +1,7 @@
+from datetime import datetime
 import os
 import sys
+import re
 
 import numpy as np
 import pandas as pd
@@ -34,6 +36,9 @@ from packs.core.io                 import reader
 from packs.types                   import types
 from hypothesis                    import given
 from hypothesis.strategies         import integers
+
+
+from unittest.mock import patch, MagicMock
 
 @given(integers(min_value = 1, max_value = 1000000))
 def test_rwf_type_has_correct_shape(samples):
@@ -153,26 +158,27 @@ def test_save_path_exists():
 
 
 def test_ensure_new_path_created(data_dir):
+    data_path  = data_dir + 'three_channels_WD2.h5'
+    found_path = check_save_path(data_path, overwrite=False)
 
-    data_path     = data_dir + 'three_channels_WD2.h5'
-    new_data_path = data_dir + 'three_channels_WD21.h5'
-
-    found_path    = check_save_path(data_path, overwrite = False)
-
-    assert found_path == new_data_path
+    assert found_path != data_path
+    assert found_path.endswith('.h5')
+    assert re.search(r'_\d{8}_\d{6}', found_path), "Expected datetime stamp in filename"
+    assert not os.path.exists(found_path), "Path should not already exist"
 
 
-def test_runtime_error_when_too_many_save_files(data_dir):
+def test_runtime_error_when_too_many_save_files(tmp_path):
+    timestamp = "20240101_120000"
+    mock_dt = MagicMock()
+    mock_dt.now.return_value.strftime.return_value = timestamp
 
-    relevant_dir = data_dir + 'repetitive_data/'
-    # generate 101 empty files
-    with open(relevant_dir + f'test_.txt', 'w'):
-            pass
+    (tmp_path / f'test_{timestamp}.txt').touch()
     for i in range(1, 101):
-        with open(relevant_dir + f'test_{i}.txt', 'w'):
-            pass
-    with raises(RuntimeError):
-        check_save_path(relevant_dir + 'test_.txt', overwrite=False)
+        (tmp_path / f'test_{timestamp}_{i}.txt').touch()
+
+    with patch('packs.proc.processing_utils.datetime', mock_dt):
+        with raises(RuntimeError):
+            check_save_path(str(tmp_path / 'test.txt'), overwrite=False)
 
 @mark.parametrize("config, inpt, output, comparison", [("process_WD2_1channel.conf", "one_channel_WD2.bin", "one_channel_tmp.h5", "one_channel_WD2.h5"),
                                            ("process_WD2_3channel.conf", "three_channels_WD2.bin", "three_channels_tmp.h5", "three_channels_WD2.h5")])

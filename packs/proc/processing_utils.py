@@ -12,6 +12,7 @@ import h5py
 from typing import BinaryIO
 from typing import Generic
 from typing import Optional
+from datetime import datetime
 
 # imports start from MULE/
 from packs.core.core_utils import flatten
@@ -341,36 +342,54 @@ def save_data(event_information  :  np.ndarray,
 
 
 
-def check_save_path(save_path  :  str,
-                    overwrite  :  bool):
+def check_save_path(save_path: str,
+                    overwrite: bool,
+                    max_iterations : Optional[int] = 100) -> str:
     '''
-    Checks that the save_path exists. Checks if it is valid/doesn't already exist
-    and if it does, other `overwrite` it or create an additional file with a number added.
+    Checks that the save_path directory exists, then either returns the path unmodified
+    (if overwrite is True) or generates a unique save path by inserting a datetime stamp
+    (YYYYMMDD_HHMMSS) before the file extension. If a file with that datetime name already
+    exists, a counter suffix is appended.
 
     Parameters
     ----------
-
         save_path  (str)   :  Path to saved file
-        overwrite  (bool)  :  Boolean for overwriting pre-existing files
+        overwrite  (bool)  :  If True, returns save_path unmodified after confirmation.
+                              If False, appends '_YYYYMMDD_HHMMSS' to the stem, plus '_N'
+                              if needed.
+        max_iterations (int):  Maximum number of iterations to find a unique filename before raising an error
 
     Returns
     -------
-        save_path  (str)  :  Valid path to saved file, either unmodified or altered to add '_N'
-                             where N is number of loops it had to do before finding a valid N
+        save_path  (str)  :  Valid path to saved file, either unmodified or with datetime
+                             stamp and optional counter appended
 
+    Raises
+    ------
+        FileNotFoundError  :  If the directory of save_path does not exist
     '''
     if not os.path.exists(os.path.dirname(save_path)):
         raise FileNotFoundError(2, 'Save path not found', os.path.dirname(save_path))
 
-    name, ext = os.path.splitext(save_path)
-    counter = 1
+    if overwrite:
+        return save_path
 
-    if overwrite == False:
-        while os.path.exists(save_path):
-            save_path = name + str(counter) + ext
+
+    if not overwrite:
+        name, ext = os.path.splitext(save_path)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        dated_path = f"{name}_{timestamp}{ext}"
+
+        if not os.path.exists(dated_path):
+            return dated_path
+
+        counter = 1
+        while os.path.exists(f"{name}_{timestamp}_{counter}{ext}"):
+            if counter >= max_iterations:
+                raise RuntimeError(f"Too many save files with the same timestamp: {dated_path}")
             counter += 1
-            if counter > 100:
-                raise RuntimeError("Writing to file went over 100 loops to find a unique name. Sort out your files!")
+
+        return f"{name}_{timestamp}_{counter}{ext}"
 
     return save_path
 
