@@ -36,7 +36,7 @@ def visualise(file_path     :  str,
     
     filename = (file_path.rsplit('.')[1]).rsplit('/')[0]
 
-    # Load event + waveform info
+    # load event + waveform info
     wf_evt = load_evt_info(file_path)
     samples = int(wf_evt.loc[0].samples)
     sampling_period = float(wf_evt.loc[0].sampling_period)
@@ -45,10 +45,11 @@ def visualise(file_path     :  str,
     max_wf = len(wf_rwf['rwf']) - 1
     time = np.linspace(0,samples * sampling_period, num = samples)
 
-    # --- GUI setup ---
+    # init GUI 
     root = tk.Tk()
     root.title(f"Waveform Viewer — {filename}")
 
+    # generate plot
     fig, ax = plt.subplots(layout='constrained', figsize=(8, 4))
     canvas = FigureCanvasTkAgg(fig, master=root)
     canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
@@ -69,13 +70,13 @@ def visualise(file_path     :  str,
         ax.set_ylabel('ADC')
         canvas.draw()
 
-    # Controls frame
+    # controls frame
     ctrl = ttk.Frame(root, padding=8)
     ctrl.pack(fill=tk.X)
 
     ttk.Label(ctrl, text="Waveform #").pack(side=tk.LEFT)
 
-    # Number entry
+    # number entry
     entry_var = tk.StringVar(value="0")
 
     def on_entry(event      : tk.Event | None = None):
@@ -94,7 +95,7 @@ def visualise(file_path     :  str,
     entry.bind("<Return>", on_entry)
     entry.bind("<FocusOut>", on_entry)
 
-    # Slider
+    # slider
     slider_var = tk.IntVar(value=0)
 
     def on_slider(value     : str | None = None):
@@ -103,12 +104,13 @@ def visualise(file_path     :  str,
         entry_var.set(str(val))
         plot_waveform(val)
 
+    # controls slider
     slider = ttk.Scale(ctrl, from_=0, to=max_wf, orient=tk.HORIZONTAL,
                     variable=slider_var, command=on_slider, length=400)
     slider.pack(side=tk.LEFT, padx=8, fill=tk.X, expand=True)
 
     ttk.Label(ctrl, text=f"(0 – {max_wf})").pack(side=tk.LEFT)
 
-    # Draw initial waveform
+    # draw initial waveform
     plot_waveform(0)
     root.mainloop()
