@@ -1,22 +1,12 @@
-import io
-import sys
-import os
-import h5py
-import argparse
-import math   as m
 import numpy  as np
 import pandas as pd
-import warnings
-import matplotlib
 import matplotlib.pyplot as plt
-from matplotlib.pyplot import cm
 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import tkinter as tk
 from tkinter import ttk
 
 from packs.core.io import load_evt_info, load_rwf_info
-from packs.types import types
 from packs.proc.calibration_utils import subtract_baseline, collect_sidebands
 
 def visualise(file_path     :  str,
