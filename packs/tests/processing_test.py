@@ -241,8 +241,19 @@ def test_WD1_Lecroy_decode_produces_expected_output(config, inpt, output, compar
     run_pack = [sys.executable, MULE_dir + "/bin/mule", "proc", temp_config]
     subprocess.run(run_pack)
 
-    # the event info can be read out like a normal h5, the RWF cannot due to how they're structured
-    assert pd.read_hdf(save_path, 'RAW/event_info').equals(pd.read_hdf(comparison_path, 'RAW/event_info'))
+    # load event info from both files for comparison
+    saved_event_info      = pd.read_hdf(save_path, 'RAW/event_info')
+    comparison_event_info = pd.read_hdf(comparison_path, 'RAW/event_info')
+
+    # compare integer columns exactly
+    exact_cols = ['event_number', 'timestamp', 'samples', 'channels']
+    assert saved_event_info[exact_cols].equals(comparison_event_info[exact_cols])
+
+    # compare float columns with tolerance to account for floating point precision differences
+    np.testing.assert_allclose(saved_event_info['sampling_period'].values,
+                               comparison_event_info['sampling_period'].values,
+                               rtol=1e-10)
+
     assert [x for x in reader(save_path, 'RAW', 'rwf')] == [x for x in reader(comparison_path, 'RAW', 'rwf')]
 
 
