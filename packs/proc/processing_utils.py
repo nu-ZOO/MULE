@@ -686,8 +686,7 @@ def process_event_lazy_lecroy(file_obj  :   io.TextIOWrapper):
     reader              = csv.reader(file_obj)
     wf_num = 0
     while batch := get_batch(reader, segment_size):
-        #if wf_num == 0: # used for the check_time below
-        #    return batch
+
         yield (batch, evt_info_times[wf_num])    
         wf_num += 1
     # end of data
