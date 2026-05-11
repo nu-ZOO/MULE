@@ -582,7 +582,7 @@ def process_bin_WD2(file_path  :  str,
                 save_data(event_info, rwf, save_path, counter)
             counter += (counts)
 
-def read_header(file_obj  :   BinaryIO):
+def read_header_lecroy(file_obj  :   io.TextIOWrapper):
     '''
     Reads and parses the header of an oscilloscope binary file, extracting
     metadata such as the number of segments, segment size, and time step.
@@ -602,25 +602,38 @@ def read_header(file_obj  :   BinaryIO):
             Number of waveform segments (waveforms) stored in the file.
         - segment_size : int
             Number of samples per segment.
+
+    Makeup of csv header by line next(file_obj).split(',')[n],
+     - Oscilloscope model, instrument id, Object saved
+     - Segments, number of segments, SegmentSize, number of points in each segment
+     - Segment, TrigTime, TimeSinceSegment1
+     - Segment number, date and time, time since first sample recorded
+     - ...
     '''
     
     oscilloscope_model = int((next(file_obj).split(','))[1])
-    file_heading = next(file_obj).split(',')
-    segments = int(file_heading[1])
-    segment_size = int(file_heading[3])   
-    evt_info_heading = next(file_obj).split(',')
+
+    file_heading              = next(file_obj).split(',')
+    segments                  = int(file_heading[1])
+    segment_size              = int(file_heading[3])   
+
+    evt_info_heading          = next(file_obj).split(',')
     for evt_info_line_idx in range(segments):
-        evt_info_line = next(file_obj).split(',')
-    data_heading = next(file_obj).split(',')  
-    time1 = float((next(file_obj).split(','))[0])
-    time2 = float((next(file_obj).split(','))[0])
+        evt_info_line         = next(file_obj).split(',')
+
+   
+    data_heading = next(file_obj).split(',')
+
+  
+    time1               = float((next(file_obj).split(','))[0])
+    time2               = float((next(file_obj).split(','))[0])
 
     return ((np.diff([time1, time2]))[0], segments, segment_size)
 
-def get_batch(reader    :   '_csv.reader',
-              batch_size    :   int):
+def get_batch(reader        :   '_csv.reader',
+              batch_size    :   int) -> list: 
     '''
-    Generator that outputs a list of all the second elements of a row for each batch
+    Outputs a list of all the second elements of a row for each batch
     then goes to the next row
     Parameters
     ----------
@@ -632,7 +645,7 @@ def get_batch(reader    :   '_csv.reader',
     '''
     return [float(row[1]) for _ in range(batch_size) if (row := next(reader, None))]
 
-def process_event_lazy_lecroy(file_obj  :   BinaryIO):
+def process_event_lazy_lecroy(file_obj  :   io.TextIOWrapper):
     '''
     Lecroy Oscilloscope LECROYWS4054HD: Generator that outputs each event iteratively from an opened csv file
     Parameters
@@ -643,39 +656,54 @@ def process_event_lazy_lecroy(file_obj  :   BinaryIO):
     -------
         data  (generator)  :  Generator object containing one event's worth of data
                               across each event
-    '''
-    oscilloscope_model = int((next(file_obj).split(','))[1])
-    file_heading = next(file_obj).split(',')
-    segments = int(file_heading[1])
-    segment_size = int(file_heading[3])
 
-    evt_info_heading = next(file_obj).split(',')
+    Makeup of csv header by line next(file_obj).split(',')[n],
+     - Oscilloscope model, instrument id, Object saved
+     - Segments, number of segments, SegmentSize, number of points in each segment
+     - Segment, TrigTime, TimeSinceSegment1
+     - Segment number, date and time, time since first sample recorded
+     - ...
+    '''
+
+    # start of header
+    oscilloscope_model = int((next(file_obj).split(','))[1])
+
+    file_heading        = next(file_obj).split(',')
+    segments            = int(file_heading[1])
+    segment_size        = int(file_heading[3])
+
+    evt_info_heading    = next(file_obj).split(',')
+
     evt_info_times  = np.empty(segments, dtype=np.float64)
     for evt_info_line_idx in range(segments):
         evt_info_line = next(file_obj).split(',')
-        evt_info_times[evt_info_line_idx] = evt_info_line[2] # time since first sample recorded
-
-    data_heading = next(file_obj).split(',')
-    reader = csv.reader(file_obj)
+        # time since first sample recorded
+        evt_info_times[evt_info_line_idx] = evt_info_line[2]
+    # end of header
+    
+    # start of data
+    data_heading        = next(file_obj).split(',')
+    reader              = csv.reader(file_obj)
     wf_num = 0
     while batch := get_batch(reader, segment_size):
         #if wf_num == 0: # used for the check_time below
         #    return batch
         yield (batch, evt_info_times[wf_num])    
         wf_num += 1
-    
+    # end of data
+
     print("Processing Finished!")
 
 def process_csv_lecroy(file_path    :  str,
-                save_path    :  str,
-                overwrite    :  Optional[bool] = False,
-                print_mod    :  Optional[int] = -1):   
+                save_path           :  str,
+                overwrite           :  Optional[bool] = False,
+                print_mod           :  Optional[int] = -1):   
     """
     Process a Lecroy CSV waveform file and write the parsed events to a structured output file.
+    This only works for individual channels at the moment, as Lecroy oscilloscopes save one file per channel.
 
     Reads waveform data lazily from a Lecroy-format CSV, structures each event into
-    typed NumPy arrays, and writes them incrementally to the output file using a
-    context-managed writer.
+    typed NumPy arrays, and writes them to the output file using the writer.
     Parameters
     ----------
         file_path  (str) : Path to the input Lecroy CSV file to be read.
@@ -686,12 +714,12 @@ def process_csv_lecroy(file_path    :  str,
     -------
         None
     """
-    
-    with open(file_path, 'r') as file_object:
-        (sample_size, num_of_events, samples) = read_header(file_object)    
-    print('wfs: ', num_of_events, '; samples: ', samples, '; sample size: ', sample_size)  
 
     with open(file_path, 'r') as file_object:
+
+        (sample_size, num_of_events, samples) = read_header_lecroy(file_object)
+        print('wfs: ', num_of_events, '; samples: ', samples, '; sample size: ', sample_size)
+        file_object.seek(0)
 
         with writer(save_path, 'RAW', overwrite) as write:
 
@@ -707,6 +735,6 @@ def process_csv_lecroy(file_path    :  str,
                 event_info = np.array((i, timestamp, samples, sample_size, 1), dtype = e_dtype)
                 waveforms  = np.array((i, 0, waveform), dtype = wf_dtype)
 
-                # add data to df lazily
+                # add data to df
                 write('event_info', event_info, (True, num_of_events, i))
                 write('rwf', waveforms, (True, num_of_events, i))

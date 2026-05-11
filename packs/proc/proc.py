@@ -31,7 +31,7 @@ def proc(config_file):
                             process_csv_lecroy(**conf_dict)
                         case other:
                             raise RuntimeError(f"Lecroy model {other} decoding isn't currently implemented.")
-                if 'wavedump_edition' in conf_dict:
+                elif 'wavedump_edition' in conf_dict:
                     match conf_dict.pop('wavedump_edition'):
                         case 1:
                             process_bin_WD1(**conf_dict)
@@ -39,6 +39,8 @@ def proc(config_file):
                             process_bin_WD2(**conf_dict)
                         case other:
                             raise RuntimeError(f"wavedump edition {other} decoding isn't currently implemented.")
+                else:
+                    raise RuntimeError('No valid decoding method selected.')
             case 'calibrate':
                 calibrate(**conf_dict)
             case other:
