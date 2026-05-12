@@ -13,7 +13,10 @@ jobs:
         fail-fast: false
         matrix:
           python-version: [3.12]
-          platform: [ubuntu-24.04]
+          platform: 
+            - ubuntu-24.04
+            - macos-14  # macOS ARM (M1/M2/M3/M4)
+            - macos-15-intel  # macOS x86_64
       runs-on: ${{ matrix.platform }}
     
       steps:
@@ -21,17 +24,9 @@ jobs:
       
         - name: Test suite
           run: |
-            wget https://repo.anaconda.com/miniconda/Miniconda3-py312_24.9.2-0-Linux-x86_64.sh -O miniconda.sh
-            bash miniconda.sh -b -p $HOME/miniconda
-            source $HOME/miniconda/etc/profile.d/conda.sh
-
-            echo 
-            echo "************************************"
-            echo ----------Conda Installed-----------
-            echo "************************************"
-            echo 
-
-            source setup.sh
+            # Use setup.sh to handle architecture detection automatically
+            # Provide input to auto-select Yes for conda installation if needed
+            source setup.sh <<< "1"
 
             echo 
             echo "************************************"
@@ -39,4 +34,5 @@ jobs:
             echo "************************************"
             echo 
 
-            PYTEST_ADDOPTS=--color=yes HYPOTHESIS_PROFILE=travis-ci python -m pytest -v 
+            PYTEST_ADDOPTS=--color=yes HYPOTHESIS_PROFILE=travis-ci \
+              conda run -n MULE-3.12-10-24 python -m pytest -v 
