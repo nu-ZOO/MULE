@@ -297,7 +297,10 @@ def read_binary(file    :  BinaryIO,
     return data
 
 
-def number_of_events_WD2(file_path, samples, channels, header_size):
+def number_of_events_WD2(file_path    :  str,
+                         samples      :  int,
+                         channels     :  int,
+                         header_size  :  int) -> int:
     file_size     = os.path.getsize(file_path)
     waveform_size = ((samples * channels * 4 ) + header_size) # can't remember why *2, will need to test this
     num_of_events = int(file_size / waveform_size)
@@ -713,28 +716,28 @@ def read_header_lecroy(file_obj  :   io.TextIOWrapper):
      - Segment number, date and time, time since first sample recorded
      - ...
     '''
-    
+
     oscilloscope_model = int((next(file_obj).split(','))[1])
 
     file_heading              = next(file_obj).split(',')
     segments                  = int(file_heading[1])
-    segment_size              = int(file_heading[3])   
+    segment_size              = int(file_heading[3])
 
     evt_info_heading          = next(file_obj).split(',')
     for evt_info_line_idx in range(segments):
         _         = next(file_obj).split(',')
 
-   
+
     data_heading = next(file_obj).split(',')
 
-  
+
     time1               = float((next(file_obj).split(','))[0])
     time2               = float((next(file_obj).split(','))[0])
 
     return ((np.diff([time1, time2]))[0], segments, segment_size)
 
 def get_batch(reader        :   '_csv.reader',
-              batch_size    :   int) -> List: 
+              batch_size    :   int) -> List:
     '''
     Outputs a list of all the second elements of a row for each batch
     then goes to the next row
@@ -783,14 +786,14 @@ def process_event_lazy_lecroy(file_obj  :   io.TextIOWrapper):
         # time since first sample recorded
         evt_info_times[evt_info_line_idx] = evt_info_line[2]
     # end of header
-    
+
     # start of data
     data_heading        = next(file_obj).split(',')
     reader              = csv.reader(file_obj)
     wf_num = 0
     while batch := get_batch(reader, segment_size):
 
-        yield (batch, evt_info_times[wf_num])    
+        yield (batch, evt_info_times[wf_num])
         wf_num += 1
     # end of data
 
@@ -799,7 +802,7 @@ def process_event_lazy_lecroy(file_obj  :   io.TextIOWrapper):
 def process_csv_lecroy(file_path    :  str,
                 save_path           :  str,
                 overwrite           :  Optional[bool] = False,
-                print_mod           :  Optional[int] = -1):   
+                print_mod           :  Optional[int] = -1):
     """
     Process a Lecroy CSV waveform file and write the parsed events to a structured output file.
     This only works for individual channels at the moment, as Lecroy oscilloscopes save one file per channel.
