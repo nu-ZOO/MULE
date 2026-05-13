@@ -23,6 +23,7 @@ from packs.proc.processing_utils   import read_binary_lazy
 from packs.proc.processing_utils   import format_wfs
 from packs.proc.processing_utils   import check_save_path
 from packs.proc.processing_utils   import save_data
+from packs.proc.processing_utils   import number_of_events_WD2
 
 from packs.types.types             import generate_wfdtype
 from packs.types.types             import rwf_type
@@ -276,6 +277,15 @@ def test_lazy_loading_short_header_WD1(MULE_dir):
     with open(data_path, 'rb') as file:
         a = process_event_lazy_WD1(file)
         next(a)
+
+@mark.parametrize("file, samples, channels, header_size, output", [('100bytes.bin', 1, 1, 0, 25), ('100bytes.bin', 1, 1, 46, 2), ('100bytes.bin', 2, 10, 20, 1), ('10000bytes.bin', 4, 8, 72, 50)])
+def test_number_of_events_correct(data_dir, file, samples, channels, header_size, output):
+    '''
+    Simple test to ensure the logic returns the number of events we expect.
+    '''
+    file_path = data_dir + file
+
+    assert output == number_of_events_WD2(file_path, samples, channels, header_size)
 
 
 @mark.parametrize("inpt", [("one_channel_WD2.bin"),("three_channels_WD2.bin")])
