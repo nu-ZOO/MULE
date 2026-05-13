@@ -296,6 +296,15 @@ def read_binary(file    :  BinaryIO,
 
     return data
 
+
+def number_of_events_WD2(file_path, samples, channels, header_size):
+    file_size     = os.path.getsize(file_path)
+    waveform_size = ((samples * channels * 4 ) + header_size) # can't remember why *2, will need to test this
+    num_of_events = int(file_size / waveform_size)
+
+    return num_of_events
+
+
 def format_wfs(data      :  np.ndarray,
                wdtype    :  np.dtype,
                samples   :  int,
@@ -597,9 +606,7 @@ def process_bin_WD2_lazy(file_path  :  str,
 
                     # first run-through, collect the header information to extract table size
                     if i == 0:
-                        file_size     = os.path.getsize(file_path)
-                        waveform_size = ((samples * channels * 4 ) + header_size) # can't remember why *2, will need to test this
-                        num_of_events = int(file_size / waveform_size)
+                        num_of_events = number_of_events_WD2(file_path, samples, channels, header_size)
 
                     write('event_info', evt_info, (True, num_of_events, i))
                     # writer only takes one row at a time, can't broadcast all three at once
