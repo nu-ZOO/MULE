@@ -252,9 +252,6 @@ def read_binary_lazy(file    :  BinaryIO,
         file    (BufferedReader)  :  Opened file
         wdtype  (ndtype)         :  Custom data type for extracting information from
                                      binary files
-        counts  (int)             :  How many events you want to read in. -1 sets it to take all events.
-        offset  (int)             :  Offset at which to start reading the data. Used for chunking purposes
-                                     and so should by default be set to zero if not chunking.
 
     Returns
     -------
@@ -556,9 +553,6 @@ def process_bin_WD2_lazy(file_path  :  str,
 
     '''
     WAVEDUMP 2: Takes a binary file and outputs the containing waveform information in a h5 file.
-
-    For particularly large waveforms/number of events. You can 'chunk' the data such that
-    each dataset holds `counts` events.
 
     Parameters
     ----------
