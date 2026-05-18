@@ -3,7 +3,7 @@ import sys
 import numpy as np
 import pandas as pd
 import subprocess
-import pytest                      
+import pytest
 import configparser
 
 from packs.proc.processing_utils   import process_header
@@ -22,7 +22,7 @@ def test_incorrect_key_name(MULE_dir, capsys):
     the config file, the appropriate error is raised.
     """
     conf = MULE_dir + "/packs/tests/data/configs/incorrect_key_name.conf"
-    with pytest.raises(SystemExit) as e: 
+    with pytest.raises(SystemExit) as e:
         proc(str(conf))
     # captures output
     out = capsys.readouterr().out
@@ -42,7 +42,8 @@ def test_changing_config_order(config, inpt, output, comparison, MULE_dir, data_
     config_path     =  data_dir + "configs/" + config
 
     # collect samples from header
-    _, samples, _, _ = process_header(file_path)
+    with open(file_path, 'rb') as f:
+        _, samples, _, _ = process_header(f)
 
     # keep a copy of the original config file to rewrite after test
     with open(config_path, "r") as f:
@@ -63,7 +64,7 @@ def test_changing_config_order(config, inpt, output, comparison, MULE_dir, data_
 
         for key in new_order + extra_keys:
             reordered.set("required", key, cnfg.get("required", key))
-        
+
         # overide the file_path and save_path to test specific paths
         reordered.set('required', 'file_path', f"'{file_path}'")
         reordered.set('required', 'save_path', f"'{save_path}'")

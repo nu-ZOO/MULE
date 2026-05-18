@@ -16,6 +16,7 @@ from pytest                        import fixture
 
 from packs.proc.processing_utils   import process_event_lazy_WD1
 from packs.proc.processing_utils   import process_bin_WD1
+from packs.proc.processing_utils   import process_bin_WD2_lazy
 from packs.proc.processing_utils   import read_defaults_WD2
 from packs.proc.processing_utils   import process_header
 from packs.proc.processing_utils   import read_binary
@@ -65,12 +66,13 @@ def test_header_components_read_as_expected(wd2_3ch_bin):
     assert sampling_period     == smpl_prd
 
 
-def test_nonexistent_file_raises_error():
+def test_nonexistent_file_raises_error(tmp_path):
 
     fake_path = '/this/path/does/not/exist.bin'
 
     with raises(FileNotFoundError):
-        process_header(fake_path)
+        process_bin_WD2_lazy(fake_path, f'{tmp_path}/lazy_output.h5')
+        #process_header(fake_path)
 
 
 def test_header_processed_correctly(wd2_3ch_bin):
@@ -80,7 +82,8 @@ def test_header_processed_correctly(wd2_3ch_bin):
     channels  = 3
     wdtype    = generate_wfdtype(channels, smpls) # 3 channels in this case
 
-    result = process_header(wd2_3ch_bin)
+    with open(wd2_3ch_bin, 'rb') as f:
+        result = process_header(f)
 
     assert result[0] == wdtype
     assert result[1] == smpls
@@ -100,7 +103,8 @@ def test_header_works_when_data_malformed(data_dir):
     file = data_dir + 'malformed_data.bin'
 
     with warns(UserWarning):
-        process_header(file)
+        with open(file, 'rb') as f:
+            process_header(f)
 
 @mark.parametrize("function, error", [(process_header, NameError),
                                       (read_defaults_WD2, ValueError)])
@@ -194,7 +198,8 @@ def test_decode_produces_expected_output(config, inpt, output, comparison, MULE_
     temp_config = str(tmp_path / config)
 
     # collect samples from header
-    _, samples, _, _ = process_header(file_path)
+    with open(file_path, 'rb') as f:
+        _, samples, _, _ = process_header(f)
 
     # rewrite paths to files
     cnfg = configparser.ConfigParser()
@@ -302,7 +307,8 @@ def test_lazy_eager_WD2_match(data_dir, inpt):
     file_path = data_dir + inpt
 
     # collect header info
-    wdtype, samples, sampling_period, channels = process_header(file_path)
+    with open(file_path, 'rb') as f:
+        wdtype, samples, sampling_period, channels = process_header(f)
 
     # collect lazy data
     lazy_data = []
