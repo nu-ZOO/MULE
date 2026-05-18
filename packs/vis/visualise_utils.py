@@ -37,8 +37,8 @@ def visualise_waveform(file_path     :  str,
         ax.plot(time, single_wf,
                 marker='o', markerfacecolor='None', linestyle='None', markersize=1)
         ax.set_title(f'Waveform #{wf_num}')
-        ax.set_xlabel('Time (s)')
-        ax.set_ylabel('ADC')
+        ax.set_xlabel('Time (ns)')
+        ax.set_ylabel('ADC or mV')
         canvas.draw()
     
     def on_entry(event      : tk.Event | None = None):
@@ -64,7 +64,8 @@ def visualise_waveform(file_path     :  str,
     # load event + waveform info
     wf_evt = load_evt_info(file_path)
     samples = int(wf_evt.loc[0].samples)
-    sampling_period = float(wf_evt.loc[0].sampling_period)
+    #sampling_period = float(wf_evt.loc[0].sampling_period)
+    sampling_period = 1
     wf_rwf = load_rwf_info(file_path, samples)
     print(f'file: {file_path}\nsamples: {samples}\nsampling_period: {sampling_period}')
     max_wf = len(wf_rwf['rwf']) - 1
