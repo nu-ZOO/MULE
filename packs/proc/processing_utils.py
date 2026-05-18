@@ -150,7 +150,7 @@ def read_defaults_WD2(file        :  BinaryIO,
     return (event_number, timestamp, samples, sampling_period)
 
 
-def process_header(file_path  :  str,
+def process_header(file       :  BinaryIO,
                    byte_order :  Optional[str] = None) -> (np.dtype, int, int, int):
     '''
     Collect the relevant information from the file's header, and determine if its valid
@@ -175,8 +175,8 @@ def process_header(file_path  :  str,
     Parameters
     ----------
 
-        file_path  (str)  :  Path to binary file
-        byte_order (str)  :  Byte order
+        file       (file)  :  Binary file object
+        byte_order (str)   :  Byte order
 
     Returns
     -------
@@ -197,37 +197,37 @@ def process_header(file_path  :  str,
     elif (byte_order != 'little') and (byte_order != 'big'):
         raise NameError(f'Invalid byte order provided: {byte_order}. Please provide the correct byte order for your machine.')
 
-    # open file
-    if not os.path.exists(file_path):
-        raise FileNotFoundError(2, 'Path or file not found', file_path)
+    # read defaults
+    event_number, timestamp, samples, sampling_period = read_defaults_WD2(file, byte_order)
+    # attempt to read channels
+    channels        = int.from_bytes(file.read(4), byteorder=byte_order)
 
-    with open(file_path, 'rb') as file:
+    # then read in a full collection of data, and see if the following header makes sense.
+    # if it explicitly breaks, assume 1 channel, raise a warning and continue.
+    try:
+        dataset         = file.read(4*samples*channels)
+        event_number_1, timestamp_1, samples_1, sampling_period_1 = read_defaults_WD2(file, byte_order)
+    except MemoryError as e:
+        warnings.warn("process_header() unable to read file, defaulting to 1-channel description.\nIf this is not what you expect, please ensure your data was collected correctly.")
+        event_number_1 = -1
+        samples_1 = -1
+        sampling_period_1 = -1
 
-        event_number, timestamp, samples, sampling_period = read_defaults_WD2(file, byte_order)
-        # attempt to read channels
-        channels        = int.from_bytes(file.read(4), byteorder=byte_order)
-
-        # then read in a full collection of data, and see if the following header makes sense.
-        # if it explicitly breaks, assume 1 channel, raise a warning and continue.
-        try:
-            dataset         = file.read(4*samples*channels)
-            event_number_1, timestamp_1, samples_1, sampling_period_1 = read_defaults_WD2(file, byte_order)
-        except MemoryError as e:
-            warnings.warn("process_header() unable to read file, defaulting to 1-channel description.\nIf this is not what you expect, please ensure your data was collected correctly.")
-            event_number_1 = -1
-            samples_1 = -1
-            sampling_period_1 = -1
-
-        # check that event header is as expected
-        if (event_number_1 -1 == event_number) and (samples_1 == samples) and sampling_period_1 == (sampling_period):
-            print(f"{channels} channels detected. Processing accordingly...")
-        else:
-            print(f"Single channel detected. If you're expecting more channels, something has gone wrong.\nProcessing accordingly...")
-            channels = 1
+    # check that event header is as expected
+    if (event_number_1 -1 == event_number) and (samples_1 == samples) and sampling_period_1 == (sampling_period):
+        print(f"{channels} channels detected. Processing accordingly...")
+    else:
+        print(f"Single channel detected. If you're expecting more channels, something has gone wrong.\nProcessing accordingly...")
+        channels = 1
 
     # this is a check to ensure that if you've screwed up the acquisition, it warns you adequately
     if samples == 0:
         raise RuntimeError(r"Unable to decode raw waveforms that have sample size zero. In wavedump 2, when collecting data from a single channel make sure that 'multiple channels per file' isn't checked.")
+
+
+    # return file to initial location in df
+    file.seek(0)
+
 
     # collect data types
     wdtype = types.generate_wfdtype(channels, samples)
@@ -584,16 +584,21 @@ def process_bin_WD2_lazy(file_path  :  str,
     print(f'\nData input   :  {file_path}\nData output  :  {save_path}')
 
     # collect header info
-    wdtype, samples, sampling_period, channels = process_header(file_path)
-
-   # create header length (bytes) for processing
-    if channels == 1:
-        header_size = 24
-    else:
-        header_size = 28
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(2, 'Path or file not found', file_path)
+    #wdtype, samples, sampling_period, channels = process_header(file_path)
 
     # open file for reading
     with open(file_path, 'rb') as file:
+        print(f'file: {file}')
+        wdtype, samples, sampling_period, channels = process_header(file)
+
+       # create header length (bytes) for processing
+        if channels == 1:
+            header_size = 24
+        else:
+            header_size = 28
+
         with writer(save_path, 'RAW', overwrite) as write:
 
             for i, (flag, array) in enumerate(read_binary_lazy(file, wdtype)):
