@@ -16,12 +16,15 @@ from pytest                        import fixture
 
 from packs.proc.processing_utils   import process_event_lazy_WD1
 from packs.proc.processing_utils   import process_bin_WD1
+from packs.proc.processing_utils   import process_bin_WD2_lazy
 from packs.proc.processing_utils   import read_defaults_WD2
 from packs.proc.processing_utils   import process_header
 from packs.proc.processing_utils   import read_binary
+from packs.proc.processing_utils   import read_binary_lazy
 from packs.proc.processing_utils   import format_wfs
 from packs.proc.processing_utils   import check_save_path
 from packs.proc.processing_utils   import save_data
+from packs.proc.processing_utils   import number_of_events_WD2
 
 from packs.types.types             import generate_wfdtype
 from packs.types.types             import rwf_type
@@ -63,12 +66,13 @@ def test_header_components_read_as_expected(wd2_3ch_bin):
     assert sampling_period     == smpl_prd
 
 
-def test_nonexistent_file_raises_error():
-    
+def test_nonexistent_file_raises_error(tmp_path):
+
     fake_path = '/this/path/does/not/exist.bin'
 
     with raises(FileNotFoundError):
-        process_header(fake_path)
+        process_bin_WD2_lazy(fake_path, f'{tmp_path}/lazy_output.h5')
+        #process_header(fake_path)
 
 
 def test_header_processed_correctly(wd2_3ch_bin):
@@ -78,7 +82,8 @@ def test_header_processed_correctly(wd2_3ch_bin):
     channels  = 3
     wdtype    = generate_wfdtype(channels, smpls) # 3 channels in this case
 
-    result = process_header(wd2_3ch_bin)
+    with open(wd2_3ch_bin, 'rb') as f:
+        result = process_header(f)
 
     assert result[0] == wdtype
     assert result[1] == smpls
@@ -98,7 +103,8 @@ def test_header_works_when_data_malformed(data_dir):
     file = data_dir + 'malformed_data.bin'
 
     with warns(UserWarning):
-        process_header(file)
+        with open(file, 'rb') as f:
+            process_header(f)
 
 @mark.parametrize("function, error", [(process_header, NameError),
                                       (read_defaults_WD2, ValueError)])
@@ -152,7 +158,7 @@ def test_formatting_works(data_dir, wd2_3ch_bin):
 def test_save_path_exists():
 
     data_path = 'some/fake/path/three_channels_WD2.h5'
-    
+
     with raises(FileNotFoundError):
         check_save_path(data_path, overwrite = False)
 
@@ -192,7 +198,8 @@ def test_decode_produces_expected_output(config, inpt, output, comparison, MULE_
     temp_config = str(tmp_path / config)
 
     # collect samples from header
-    _, samples, _, _ = process_header(file_path)
+    with open(file_path, 'rb') as f:
+        _, samples, _, _ = process_header(f)
 
     # rewrite paths to files
     cnfg = configparser.ConfigParser()
@@ -276,4 +283,44 @@ def test_lazy_loading_short_header_WD1(MULE_dir):
         a = process_event_lazy_WD1(file)
         next(a)
 
+@mark.parametrize("file, samples, channels, header_size, output", [('100bytes.bin', 1, 1, 0, 25), ('100bytes.bin', 1, 1, 46, 2), ('100bytes.bin', 2, 10, 20, 1), ('10000bytes.bin', 4, 8, 72, 50)])
+def test_number_of_events_correct(data_dir, file, samples, channels, header_size, output):
+    '''
+    Simple test to ensure the logic returns the number of events we expect.
+    '''
+    file_path = data_dir + file
 
+    assert output == number_of_events_WD2(file_path, samples, channels, header_size)
+
+
+@mark.parametrize("inpt", [("one_channel_WD2.bin"),("three_channels_WD2.bin")])
+def test_lazy_eager_WD2_match(data_dir, inpt):
+    '''
+    test to ensure that lazy and eager WD2
+    provide the same result
+    '''
+
+    # how many events are we looking at?
+    counts = 30
+
+    # extract directory
+    file_path = data_dir + inpt
+
+    # collect header info
+    with open(file_path, 'rb') as f:
+        wdtype, samples, sampling_period, channels = process_header(f)
+
+    # collect lazy data
+    lazy_data = []
+    with open(file_path) as f:
+        binary_lazy_readout   = read_binary_lazy(f, wdtype)
+        for i in range(0,counts):
+            _, lazy_wf            = next(binary_lazy_readout)
+            lazy_data.append(lazy_wf)
+
+    # open eager data
+    with open(file_path) as f:
+        data                  = read_binary     (f, wdtype, counts)
+
+    for i in range(0,counts):
+        assert data[i] == lazy_data[i]

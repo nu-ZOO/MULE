@@ -13,8 +13,11 @@ import h5py
 from typing import BinaryIO
 from typing import Generic
 from typing import Optional
-from datetime import datetime
 from typing import List
+from typing import Generator
+
+from datetime import datetime
+
 
 # imports start from MULE/
 from packs.core.core_utils import flatten
@@ -147,7 +150,7 @@ def read_defaults_WD2(file        :  BinaryIO,
     return (event_number, timestamp, samples, sampling_period)
 
 
-def process_header(file_path  :  str,
+def process_header(file       :  BinaryIO,
                    byte_order :  Optional[str] = None) -> (np.dtype, int, int, int):
     '''
     Collect the relevant information from the file's header, and determine if its valid
@@ -172,8 +175,8 @@ def process_header(file_path  :  str,
     Parameters
     ----------
 
-        file_path  (str)  :  Path to binary file
-        byte_order (str)  :  Byte order
+        file       (file)  :  Binary file object
+        byte_order (str)   :  Byte order
 
     Returns
     -------
@@ -194,41 +197,76 @@ def process_header(file_path  :  str,
     elif (byte_order != 'little') and (byte_order != 'big'):
         raise NameError(f'Invalid byte order provided: {byte_order}. Please provide the correct byte order for your machine.')
 
-    # open file
-    if not os.path.exists(file_path):
-        raise FileNotFoundError(2, 'Path or file not found', file_path)    
+    # read defaults
+    event_number, timestamp, samples, sampling_period = read_defaults_WD2(file, byte_order)
+    # attempt to read channels
+    channels        = int.from_bytes(file.read(4), byteorder=byte_order)
 
-    with open(file_path, 'rb') as file: 
+    # then read in a full collection of data, and see if the following header makes sense.
+    # if it explicitly breaks, assume 1 channel, raise a warning and continue.
+    try:
+        dataset         = file.read(4*samples*channels)
+        event_number_1, timestamp_1, samples_1, sampling_period_1 = read_defaults_WD2(file, byte_order)
+    except MemoryError as e:
+        warnings.warn("process_header() unable to read file, defaulting to 1-channel description.\nIf this is not what you expect, please ensure your data was collected correctly.")
+        event_number_1 = -1
+        samples_1 = -1
+        sampling_period_1 = -1
 
-        event_number, timestamp, samples, sampling_period = read_defaults_WD2(file, byte_order)
-        # attempt to read channels
-        channels        = int.from_bytes(file.read(4), byteorder=byte_order)
-
-        # then read in a full collection of data, and see if the following header makes sense.
-        # if it explicitly breaks, assume 1 channel, raise a warning and continue.
-        try:
-            dataset         = file.read(4*samples*channels)
-            event_number_1, timestamp_1, samples_1, sampling_period_1 = read_defaults_WD2(file, byte_order)
-        except MemoryError as e:
-            warnings.warn("process_header() unable to read file, defaulting to 1-channel description.\nIf this is not what you expect, please ensure your data was collected correctly.")
-            event_number_1 = -1
-            samples_1 = -1
-            sampling_period_1 = -1
-
-        # check that event header is as expected
-        if (event_number_1 -1 == event_number) and (samples_1 == samples) and sampling_period_1 == (sampling_period):
-            print(f"{channels} channels detected. Processing accordingly...")
-        else:
-            print(f"Single channel detected. If you're expecting more channels, something has gone wrong.\nProcessing accordingly...")
-            channels = 1
+    # check that event header is as expected
+    if (event_number_1 -1 == event_number) and (samples_1 == samples) and sampling_period_1 == (sampling_period):
+        print(f"{channels} channels detected. Processing accordingly...")
+    else:
+        print(f"Single channel detected. If you're expecting more channels, something has gone wrong.\nProcessing accordingly...")
+        channels = 1
 
     # this is a check to ensure that if you've screwed up the acquisition, it warns you adequately
     if samples == 0:
         raise RuntimeError(r"Unable to decode raw waveforms that have sample size zero. In wavedump 2, when collecting data from a single channel make sure that 'multiple channels per file' isn't checked.")
 
+
+    # return file to initial location in df
+    file.seek(0)
+
+
     # collect data types
     wdtype = types.generate_wfdtype(channels, samples)
     return wdtype, samples, sampling_period, channels
+
+
+def read_binary_lazy(file    :  BinaryIO,
+                     wdtype  :  np.dtype) -> Generator:
+    '''
+    Reads the binary in with the expected format/offset, lazily,
+    depending on counts to break the data up.
+
+    NOTE:
+    The counts are hardset to 1, making this function relatively inefficient.
+    In the future, the logic should be revised to allow `np.fromfile`'s count
+    value to be set based on optimal read-in speed. The logic of the WD2 function
+    will have to accomodate this when indexing the files.
+
+    Parameters
+    ----------
+
+        file    (BufferedReader)  :  Opened file
+        wdtype  (ndtype)         :  Custom data type for extracting information from
+                                     binary files
+
+    Returns
+    -------
+        data  (ndarray)  :  Unformatted data from binary file
+
+    '''
+    # initialise data to start the loop
+    data = (np.fromfile(file, dtype=wdtype, count = 1))
+    while len(data) != 0:
+        yield (True, data)
+        # ensure data is loaded in after the yield, so the while check is done
+        data = (np.fromfile(file, dtype=wdtype, count = 1))
+    # yield 1 when finished
+    print('Processing Finished!')
+    yield (False, np.zeros(shape = (1,)))
 
 
 def read_binary(file    :  BinaryIO,
@@ -257,6 +295,18 @@ def read_binary(file    :  BinaryIO,
     data = np.fromfile(file, dtype=wdtype, count = counts, offset = offset)
 
     return data
+
+
+def number_of_events_WD2(file_path    :  str,
+                         samples      :  int,
+                         channels     :  int,
+                         header_size  :  int) -> int:
+    file_size     = os.path.getsize(file_path)
+    waveform_size = ((samples * channels * 4 ) + header_size) # can't remember why *2, will need to test this
+    num_of_events = int(file_size / waveform_size)
+
+    return num_of_events
+
 
 def format_wfs(data      :  np.ndarray,
                wdtype    :  np.dtype,
@@ -414,7 +464,6 @@ def process_event_lazy_WD1(file_object  :  BinaryIO):
 
     # header to check against
     sanity_header = header.copy()
-
     # continue only if data exists
     while len(header) > 0:
 
@@ -424,10 +473,8 @@ def process_event_lazy_WD1(file_object  :  BinaryIO):
 
         # collect waveform, no of samples and timestamp
         yield (np.fromfile(file_object, dtype = np.dtype('<H'), count = event_size), event_size, header[-1])
-
         # collect next header
         header = np.fromfile(file_object, dtype = 'i', count = 6)
-
         # check if header has correct number of elements and correct information ONCE.
         if sanity_header is not None:
             if len(header) == 6:
@@ -492,7 +539,6 @@ def process_bin_WD1(file_path    :  str,
 
                 if (i % print_mod == 0) and (print_mod != -1):
                     print(f"Event {i}")
-
                 # enforce stucture upon data
                 e_dtype  = types.event_info_type
                 wf_dtype = types.rwf_type_WD1(samples)
@@ -511,12 +557,81 @@ def process_bin_WD1(file_path    :  str,
                 write('rwf', waveforms, (True, num_of_events, i))
 
 
+
+def process_bin_WD2_lazy(file_path  :  str,
+                    save_path  :  str,
+                    overwrite  :  Optional[bool] = False,
+                    print_mod  :  Optional[int]  = -1):
+
+    '''
+    WAVEDUMP 2: Takes a binary file and outputs the containing waveform information in a h5 file.
+
+    Parameters
+    ----------
+
+        file_path  (str)   :  Path to binary file
+        save_path  (str)   :  Path to saved file
+        overwrite  (bool)  :  Boolean for overwriting pre-existing files
+        print_mod  (int)   :  Readout frequency for number of events, -1 implies no readout
+
+    Returns
+    -------
+        None
+    '''
+
+    # Ensure save path is clear
+    save_path = check_save_path(save_path, overwrite)
+    print(f'\nData input   :  {file_path}\nData output  :  {save_path}')
+
+    # collect header info
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(2, 'Path or file not found', file_path)
+    #wdtype, samples, sampling_period, channels = process_header(file_path)
+
+    # open file for reading
+    with open(file_path, 'rb') as file:
+        print(f'file: {file}')
+        wdtype, samples, sampling_period, channels = process_header(file)
+
+       # create header length (bytes) for processing
+        if channels == 1:
+            header_size = 24
+        else:
+            header_size = 28
+
+        # open the lazy writer object `write'
+        with writer(save_path, 'RAW', overwrite) as write:
+            # read event lazily from the binary file object
+            for i, (flag, array) in enumerate(read_binary_lazy(file, wdtype)):
+
+                if (i % print_mod == 0) and (print_mod != -1):
+                    print(f"Event {i}")
+
+                # catch, once done, rwf should be empty
+                if flag:
+
+                    evt_info, rwf = format_wfs(array, wdtype, samples, channels)
+
+
+                    # first run-through, collect the header information to extract table size
+                    if i == 0:
+                        num_of_events = number_of_events_WD2(file_path, samples, channels, header_size)
+
+                    # write each event to the file
+                    write('event_info', evt_info, (True, num_of_events, i))
+                    # writer only takes one row at a time, can't broadcast all three at once
+                    for j, wfs in enumerate(rwf):
+                        write('rwf',        wfs,      (True, num_of_events * channels, i + ((channels-1)*i) + j))
+
 def process_bin_WD2(file_path  :  str,
                     save_path  :  str,
                     overwrite  :  Optional[bool] = False,
                     counts     :  Optional[int]  = -1):
 
     '''
+
+    OBSOLETE: This function has been replaced by process_bin_WD2_lazy()
+
     WAVEDUMP 2: Takes a binary file and outputs the containing waveform information in a h5 file.
 
     For particularly large waveforms/number of events. You can 'chunk' the data such that
@@ -611,28 +726,28 @@ def read_header_lecroy(file_obj  :   io.TextIOWrapper):
      - Segment number, date and time, time since first sample recorded
      - ...
     '''
-    
+
     oscilloscope_model = int((next(file_obj).split(','))[1])
 
     file_heading              = next(file_obj).split(',')
     segments                  = int(file_heading[1])
-    segment_size              = int(file_heading[3])   
+    segment_size              = int(file_heading[3])
 
     evt_info_heading          = next(file_obj).split(',')
     for evt_info_line_idx in range(segments):
         _         = next(file_obj).split(',')
 
-   
+
     data_heading = next(file_obj).split(',')
 
-  
+
     time1               = float((next(file_obj).split(','))[0])
     time2               = float((next(file_obj).split(','))[0])
 
     return ((np.diff([time1, time2]))[0], segments, segment_size)
 
 def get_batch(reader        :   '_csv.reader',
-              batch_size    :   int) -> List: 
+              batch_size    :   int) -> List:
     '''
     Outputs a list of all the second elements of a row for each batch
     then goes to the next row
@@ -681,14 +796,14 @@ def process_event_lazy_lecroy(file_obj  :   io.TextIOWrapper):
         # time since first sample recorded
         evt_info_times[evt_info_line_idx] = evt_info_line[2]
     # end of header
-    
+
     # start of data
     data_heading        = next(file_obj).split(',')
     reader              = csv.reader(file_obj)
     wf_num = 0
     while batch := get_batch(reader, segment_size):
 
-        yield (batch, evt_info_times[wf_num])    
+        yield (batch, evt_info_times[wf_num])
         wf_num += 1
     # end of data
 
@@ -697,7 +812,7 @@ def process_event_lazy_lecroy(file_obj  :   io.TextIOWrapper):
 def process_csv_lecroy(file_path    :  str,
                 save_path           :  str,
                 overwrite           :  Optional[bool] = False,
-                print_mod           :  Optional[int] = -1):   
+                print_mod           :  Optional[int] = -1):
     """
     Process a Lecroy CSV waveform file and write the parsed events to a structured output file.
     This only works for individual channels at the moment, as Lecroy oscilloscopes save one file per channel.
