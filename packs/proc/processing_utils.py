@@ -599,8 +599,9 @@ def process_bin_WD2_lazy(file_path  :  str,
         else:
             header_size = 28
 
+        # open the lazy writer object `write'
         with writer(save_path, 'RAW', overwrite) as write:
-
+            # read event lazily from the binary file object
             for i, (flag, array) in enumerate(read_binary_lazy(file, wdtype)):
 
                 if (i % print_mod == 0) and (print_mod != -1):
@@ -616,6 +617,7 @@ def process_bin_WD2_lazy(file_path  :  str,
                     if i == 0:
                         num_of_events = number_of_events_WD2(file_path, samples, channels, header_size)
 
+                    # write each event to the file
                     write('event_info', evt_info, (True, num_of_events, i))
                     # writer only takes one row at a time, can't broadcast all three at once
                     for j, wfs in enumerate(rwf):
@@ -627,6 +629,9 @@ def process_bin_WD2(file_path  :  str,
                     counts     :  Optional[int]  = -1):
 
     '''
+
+    OBSOLETE: This function has been replaced by process_bin_WD2_lazy()
+
     WAVEDUMP 2: Takes a binary file and outputs the containing waveform information in a h5 file.
 
     For particularly large waveforms/number of events. You can 'chunk' the data such that
