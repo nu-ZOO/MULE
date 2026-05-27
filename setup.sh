@@ -17,8 +17,21 @@ function install_conda {
 				exit 1;;
 	esac
 
-	echo Installing conda for $CONDA_OS # This doesn't currently understand/recognise arm based architectures. Fix!
-	CONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-py${PYTHON_VERSION//.}_24.9.2-0-${CONDA_OS}-x86_64.sh"
+	# Setting architecture based on input
+	CONDA_ARCH=$(uname -m)
+	
+	case $CONDA_ARCH in
+		x86_64) : ;;
+		arm64)  : ;;	
+		aarch64) : ;;
+		*)
+			echo "Installation only supported on x86_64 and arm architectures"
+			exit 1
+			;;
+	esac
+
+	echo Installing conda for $CONDA_OS on $CONDA_ARCH architecture
+	CONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-py${PYTHON_VERSION//.}_24.9.2-0-${CONDA_OS}-${CONDA_ARCH}.sh"
 	if which wget; then
         wget ${CONDA_URL} -O miniconda.sh
     else
@@ -26,9 +39,11 @@ function install_conda {
     fi
     bash miniconda.sh -b -p $HOME/miniconda
 	CONDA_SH=$HOME/miniconda/etc/profile.d/conda.sh
-    source $CONDA_SH
-    echo Activated conda by sourcing $CONDA_SH
-}			
+	source $CONDA_SH
+	eval "$(conda shell.bash hook)"
+	conda init bash >/dev/null 2>&1 || true
+	echo Activated conda by sourcing $CONDA_SH
+}	
 
 
 
@@ -52,6 +67,14 @@ echo "Identified directory: $MULE_DIR"
 
 if conda --version ; then
 	echo Initialising Conda...
+	CONDA_BASE=$(conda info --base 2>/dev/null)
+	if [ -n "$CONDA_BASE" ] && [ -f "$CONDA_BASE/etc/profile.d/conda.sh" ]; then
+		source "$CONDA_BASE/etc/profile.d/conda.sh"
+		eval "$(conda shell.bash hook)"
+		conda init bash >/dev/null 2>&1 || true
+	else
+		conda init bash >/dev/null 2>&1 || true
+	fi
 else
 	echo "No Conda installation detected, installing conda."
 	echo 'Download conda? Select [1/2]:'
@@ -67,11 +90,14 @@ fi
 if ! (conda env list | grep ${MULE_ENV_NAME}) >> /dev/null
 then
 	echo "Couldn't find environment, creating environment..."
-	conda env create -f MULE_environment.yml python=$PYTHON_VERSION
+	conda env create -f MULE_environment.yml
 fi
 
 echo "Activating environment..."
-conda activate ${MULE_ENV_NAME}
+if [ -n "$CI" ]; then
+	echo "CI detected, skipping conda activate. Use 'conda run -n ${MULE_ENV_NAME} ...'"
+else
+	conda activate ${MULE_ENV_NAME}
+fi
 
 cd ${MULE_DIR}
-
