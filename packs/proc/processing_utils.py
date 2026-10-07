@@ -420,8 +420,9 @@ def check_save_path(save_path: str,
     ------
         FileNotFoundError  :  If the directory of save_path does not exist
     '''
-    if not os.path.exists(os.path.dirname(save_path)):
-        raise FileNotFoundError(2, 'Save path not found', os.path.dirname(save_path))
+    dirname = os.path.dirname(os.path.abspath(save_path))
+    if not os.path.exists(dirname):
+        raise FileNotFoundError(2, 'Save path not found', dirname)
 
     if overwrite:
         return save_path

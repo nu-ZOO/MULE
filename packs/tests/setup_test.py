@@ -56,7 +56,7 @@ def test_malformed_config(config, error, data_dir):
         x = read_config_file(file_path)
 
 @mark.parametrize("config, error", [('nonexistent_WD_version.conf', RuntimeError),
-                                    ('nonexistent_process.conf', ValueError),
+                                    ('nonexistent_process.conf', RuntimeError),
                                     ('single_multi_chan.conf', RuntimeError)])
                                     # these will change to value errors when other
                                     # packs are implemented
@@ -66,7 +66,32 @@ def test_processing_catches(config, error, MULE_dir, data_dir):
 
     run_pack = [sys.executable, MULE_dir + "/bin/mule", "proc", config_path]
 
-    with raises(subprocess.CalledProcessError):
-        subprocess.run(run_pack, check = True)
+    with raises(subprocess.CalledProcessError) as excinfo:
+        subprocess.run(run_pack, check=True, capture_output=True, text=True, cwd = data_dir)
+    assert error.__name__ in excinfo.value.stderr
   
+        
+@mark.parametrize("config, error", [('ana_negative_window.conf',          ValueError),
+                                    ('ana_inverted_window.conf',          ValueError),
+                                    ('ana_baseline_overlaps_window.conf', ValueError),
+                                    ('ana_baselines_overlap.conf',        ValueError),
+                                    ('ana_missing_window_key.conf',       KeyError),
+                                    ('ana_missing_window_args.conf',      KeyError),
+                                    ('ana_missing_save_path.conf',        KeyError),
+                                    ('ana_missing_bin_size.conf',         TypeError),
+                                    ('ana_unknown_key.conf',              TypeError),
+                                    ('ana_nonexistent_file.conf',         ValueError),
+                                    ('ana_empty_files.conf',              ValueError),
+                                    ('ana_bad_baseline_mode.conf',        ValueError),
+                                    ('ana_save_dir_missing.conf',         FileNotFoundError),
+                                    ('ana_files_not_list.conf', TypeError)])
+def test_ana_catches(config, error, MULE_dir, data_dir):
+
+    config_path = data_dir + "configs/" + config
+
+    run_pack = [sys.executable, MULE_dir + "/bin/mule", "ana", config_path]
+
+    with raises(subprocess.CalledProcessError) as excinfo:
+        subprocess.run(run_pack, check=True, capture_output=True, text=True)
+    assert error.__name__ in excinfo.value.stderr
         
